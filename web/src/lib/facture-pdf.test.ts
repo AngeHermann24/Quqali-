@@ -8,7 +8,7 @@ import { genererFacturePdf } from "./facture-pdf.ts";
 const facture = {
   numero: "FAC-2026-00001",
   date: "2026-10-20T00:00:00.000Z",
-  emetteur: { nom: "Quqliter", lignes: ["Abidjan, Côte d'Ivoire"] },
+  emetteur: { nom: "Qualité+", lignes: ["Abidjan, Côte d'Ivoire"] },
   client: { nom: "Résidence Les Cocotiers", lignes: ["Riviera 3, Cocody", "Konan Yao — Gérant"] },
   lignes: [
     { libelle: "Pack Premium — abonnement annuel (12 mois)", detail: "Du 20/10/2026 au 20/10/2027", montant: 459000 },

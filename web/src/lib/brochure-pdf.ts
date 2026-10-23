@@ -1,7 +1,7 @@
 import { genererQr } from "./qrcode.ts";
 import { BLEU, BLANC, ENCRE, GRIS, SURFACE, VERT, assemblerPdf, couleur, creerCanvas } from "./pdf.ts";
 
-export const URL_SITE = "https://quqliter.ci";
+export const URL_SITE = "https://qualite.ci";
 const ACCENT = couleur(0x7e, 0xe2, 0xa4);
 
 const bandeau = (canvas: ReturnType<typeof creerCanvas>, sousTitre: string) => {
@@ -34,7 +34,7 @@ export function genererAfficheGarePdf({ lieu, url = URL_SITE }: { lieu: string; 
 
   const lignes = [
     "Un audit sur place par un agent indépendant, pas un simple avis en ligne.",
-    "Seuls les établissements notés 80 % et plus affichent le badge Quqliter.",
+    "Seuls les établissements notés 80 % et plus affichent le badge Qualité+.",
     "Vos avis vérifiés comptent pour 30 % des Awards de fin d'année.",
   ];
   let y = 240;
@@ -44,7 +44,7 @@ export function genererAfficheGarePdf({ lieu, url = URL_SITE }: { lieu: string; 
     y -= 24;
   }
   trait(50, y - 4, 545, y - 4, BLEU, 1.5);
-  texte(50, y - 24, `Diffusé par Quqliter — ${lieu || "gares routières"}.`, { taille: 9, c: GRIS });
+  texte(50, y - 24, `Diffusé par Qualité+ — ${lieu || "gares routières"}.`, { taille: 9, c: GRIS });
   texte(545, y - 24, "Gratuit pour les usagers. Le paiement n'influence jamais la note.", { taille: 9, c: GRIS, droite: true });
   return assemblerPdf(canvas.ops.join("\n"));
 }
@@ -59,7 +59,7 @@ export function genererCarteAvisPdf({ nom, url, code }: { nom: string; url: stri
 
   bandeau(canvas, "Carte avis vérifié — comptoir");
   texte(297, 678, nom, { taille: 22, gras: true, centre: 297 });
-  texte(297, 654, "Votre avis compte : il est vérifié et pèse 30 % dans les Awards Quqliter.", { taille: 11, c: ENCRE, centre: 297 });
+  texte(297, 654, "Votre avis compte : il est vérifié et pèse 30 % dans les Awards Qualité+.", { taille: 11, c: ENCRE, centre: 297 });
 
   rect(60, 380, cote + 20, cote + 20, SURFACE);
   qr(60 + 10, 380 + 10, m, matrice.modules);
@@ -79,14 +79,14 @@ export function genererCarteAvisPdf({ nom, url, code }: { nom: string; url: stri
   }
   trait(x, y + 4, 545, y + 4, SURFACE, 1);
   texte(x, y - 14, "Pas de smartphone ? Notez le code et donnez votre", { taille: 9.5, c: GRIS });
-  texte(x, y - 27, "avis plus tard depuis quqliter.ci.", { taille: 9.5, c: GRIS });
+  texte(x, y - 27, "avis plus tard depuis qualite.ci.", { taille: 9.5, c: GRIS });
 
   rect(50, 300, 495, 42, SURFACE);
   texte(66, 322, "Un seul avis par visite : chaque avis est rattaché à une visite réelle.", { taille: 10, c: ENCRE });
-  texte(66, 308, "Cet établissement est certifié Quqliter : audit sur place, note ≥ 80 %.", { taille: 10, c: ENCRE });
+  texte(66, 308, "Cet établissement est certifié Qualité+ : audit sur place, note ≥ 80 %.", { taille: 10, c: ENCRE });
 
   rect(50, 70, 495, 1.5, VERT);
-  texte(50, 54, `${url.replace(/^https?:\/\//, "")} — avis vérifiés Quqliter`, { taille: 8.5, c: GRIS });
-  texte(545, 54, "Document généré par Quqliter", { taille: 8.5, c: GRIS, droite: true });
+  texte(50, 54, `${url.replace(/^https?:\/\//, "")} — avis vérifiés Qualité+`, { taille: 8.5, c: GRIS });
+  texte(545, 54, "Document généré par Qualité+", { taille: 8.5, c: GRIS, droite: true });
   return assemblerPdf(canvas.ops.join("\n"));
 }

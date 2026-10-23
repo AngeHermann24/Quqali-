@@ -15,12 +15,12 @@ const finder = (m: boolean[][], cx: number, cy: number) => {
 test("taille de la matrice selon la version", () => {
   assert.strictEqual(genererQr("a".repeat(14)).taille, 21); // v1
   assert.strictEqual(genererQr("a".repeat(26)).taille, 25); // v2
-  assert.strictEqual(genererQr("https://quqliter.ci").taille, 25); // 18 octets → v2
-  assert.strictEqual(genererQr("https://quqliter.ci/etablissements/saveurs-d-akwaba#avis").taille, 33); // 55 octets → v4
+  assert.strictEqual(genererQr("https://qualite.ci").taille, 25); // 18 octets → v2
+  assert.strictEqual(genererQr("https://qualite.ci/etablissements/saveurs-d-akwaba#avis").taille, 33); // 55 octets → v4
 });
 
 test("motifs repères aux trois coins", () => {
-  const { taille, modules } = genererQr("https://quqliter.ci");
+  const { taille, modules } = genererQr("https://qualite.ci");
   finder(modules, 3, 3);
   finder(modules, taille - 4, 3);
   finder(modules, 3, taille - 4);
@@ -45,9 +45,9 @@ test("module sombre et zone de format renseignés", () => {
 });
 
 test("déterministe et dépendant du contenu", () => {
-  const a = genererQr("quqliter.ci");
-  const b = genererQr("quqliter.ci");
-  const c = genererQr("quqliter.ci/avis");
+  const a = genererQr("qualite.ci");
+  const b = genererQr("qualite.ci");
+  const c = genererQr("qualite.ci/avis");
   assert.deepStrictEqual(a.modules, b.modules);
   assert.notDeepStrictEqual(a.modules, c.modules);
 });
@@ -58,7 +58,7 @@ test("rejet des textes trop longs", () => {
 });
 
 test("proportion de modules sombres raisonnable (QR lisible)", () => {
-  const { modules } = genererQr("https://quqliter.ci/etablissements/saveurs-d-akwaba#avis");
+  const { modules } = genererQr("https://qualite.ci/etablissements/saveurs-d-akwaba#avis");
   const sombres = modules.flat().filter(Boolean).length;
   const ratio = sombres / (modules.length * modules.length);
   assert.ok(ratio > 0.3 && ratio < 0.7, `ratio ${ratio}`);

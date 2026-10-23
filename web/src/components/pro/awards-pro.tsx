@@ -18,7 +18,7 @@ export function AwardsPro() {
   return (
     <>
       <EspaceHeader
-        role="Awards Quqliter"
+        role="Awards Qualité+"
         titre="La cérémonie de l'année"
         sousTitre="Classement : 30 % avis clients · 70 % note des évaluateurs"
         actions={<Pastille ton={nomine ? "succes" : "neutre"}>{dossier?.audit ? (nomine ? "Nominé" : "Non nominé") : "Non éligible"}</Pastille>}

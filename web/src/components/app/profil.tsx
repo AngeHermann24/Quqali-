@@ -32,7 +32,7 @@ export function Profil({ compte }: { compte: CompteClient | null | undefined }) 
   }, [compte, toutesRes, tousAvis]);
 
   const deconnexion = () => {
-    if (!confirm("Se déconnecter de Quqliter ?")) return;
+    if (!confirm("Se déconnecter de Qualité+ ?")) return;
     setCompte(null);
     router.push("/");
   };
@@ -132,7 +132,7 @@ export function Profil({ compte }: { compte: CompteClient | null | undefined }) 
       >
         <LogOut className="size-4" aria-hidden /> Se déconnecter
       </button>
-      <p className="mt-4 text-center text-xs text-muted">Quqliter · Abidjan — données de démonstration</p>
+      <p className="mt-4 text-center text-xs text-muted">Qualité+ · Abidjan — données de démonstration</p>
     </div>
   );
 }

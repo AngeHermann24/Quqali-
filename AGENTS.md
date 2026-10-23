@@ -1,4 +1,4 @@
-# Projet Quqliter — plateforme de promotion de la qualité de service
+# Projet Qualité+ — plateforme de promotion de la qualité de service
 
 - Travail étape par étape : ne jamais passer à l'étape suivante sans validation de l'utilisateur. Livrables des étapes dans `docs/`.
 - Langue : français. Marché : Côte d'Ivoire (Abidjan). Devise : FCFA.

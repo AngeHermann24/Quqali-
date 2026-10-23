@@ -6,7 +6,7 @@ Chaque application possède **sa propre page de connexion** (détaillée au livr
 
 ---
 
-## 1. APP USAGER — `quqliter.ci` (mobile-first, PWA installable)
+## 1. APP USAGER — `qualite.ci` (mobile-first, PWA installable)
 
 ```
 /                              ✅ Accueil : recherche (secteur, ville, quartier),
@@ -28,7 +28,7 @@ Chaque application possède **sa propre page de connexion** (détaillée au livr
 /awards                        ✅ Lauréats de l'année + classements complets
 /methodologie                  ✅ Grille, seuil 80 %, indépendance, contrôles
 /tarifs                        ✅ Packs Basique / Premium (info pour les étab.)
-/contact                       🆕 Formulaire + coordonnées Quqliter
+/contact                       🆕 Formulaire + coordonnées Qualité+
 /connexion                     🆕 Connexion compte client (téléphone/e-mail)
 /inscription                   🆕 Création de compte client (léger)
 /compte                        🆕 🔒 Tableau de bord client
@@ -37,13 +37,13 @@ Chaque application possède **sa propre page de connexion** (détaillée au livr
    └─ /compte/favoris          🆕 🔒 établissements favoris ♥
 ```
 
-Lien discret dans le pied de page : « Vous êtes un établissement ? Rejoignez-nous » → `pro.quqliter.ci`.
+Lien discret dans le pied de page : « Vous êtes un établissement ? Rejoignez-nous » → `pro.qualite.ci`.
 
 ---
 
-## 2. APP PRO — `pro.quqliter.ci` (2 types de compte, 1 app)
+## 2. APP PRO — `pro.qualite.ci` (2 types de compte, 1 app)
 
-L'accueil redirige selon le rôle du compte connecté (établissement ou accompagnateur). Lien permanent : « Retour au site grand public » → `quqliter.ci`.
+L'accueil redirige selon le rôle du compte connecté (établissement ou accompagnateur). Lien permanent : « Retour au site grand public » → `qualite.ci`.
 
 ### A. Espace Établissement
 
@@ -89,7 +89,7 @@ L'accueil redirige selon le rôle du compte connecté (établissement ou accompa
 
 ---
 
-## 3. APP AGENT — `agent.quqliter.ci` (📱 mobile only, PWA, hors-ligne)
+## 3. APP AGENT — `agent.qualite.ci` (📱 mobile only, PWA, hors-ligne)
 
 Ultra simple, gros boutons, fonctionne avec une connexion faible : les missions sont téléchargées à l'avance, la grille se remplit sans réseau et se synchronise au retour de connexion.
 
@@ -117,7 +117,7 @@ L'app agent n'a **aucun lien public** — connexion directe uniquement.
 
 ---
 
-## 4. ADMIN — `admin.quqliter.ci` (sobre, tableaux, stats)
+## 4. ADMIN — `admin.qualite.ci` (sobre, tableaux, stats)
 
 ```
 /connexion                     🆕 Connexion équipe (compte créé par un admin)

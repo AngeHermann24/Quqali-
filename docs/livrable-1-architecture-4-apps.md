@@ -1,4 +1,4 @@
-# Livrable 1 — Architecture des 4 applications Quqliter
+# Livrable 1 — Architecture des 4 applications Qualité+
 
 Refonte de la plateforme en **4 applications séparées** (modèle Yango : une app par public), reliées par **une seule base de données et un seul système d'authentification**, chacune sur son sous-domaine avec son design, sa page de connexion et sa navigation.
 
@@ -6,13 +6,13 @@ Refonte de la plateforme en **4 applications séparées** (modèle Yango : une a
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                            PLATEFORME QUQLITER                                 │
+│                            PLATEFORME QUALITÉ+                                 │
 ├─────────────────┬─────────────────┬─────────────────┬────────────────────────┤
 │  APP USAGER     │  APP PRO        │  APP AGENT      │  ADMIN (back-office)   │
-│  quqliter.ci     │  pro.quqliter.ci │  agent…ci       │  admin.quqliter.ci      │
-│  www.quqliter.ci │                 │                 │                        │
+│  qualite.ci     │  pro.qualite.ci │  agent…ci       │  admin.qualite.ci      │
+│  www.qualite.ci │                 │                 │                        │
 ├─────────────────┼─────────────────┼─────────────────┼────────────────────────┤
-│ Usagers         │ Établissements  │ Agents          │ Équipe Quqliter         │
+│ Usagers         │ Établissements  │ Agents          │ Équipe Qualité+         │
 │ (sans compte)   │ adhérents       │ évaluateurs     │ interne                │
 │ + compte client │ + accompagn.    │ terrain         │                        │
 │                 │ partenaires     │                 │                        │
@@ -50,20 +50,20 @@ Refonte de la plateforme en **4 applications séparées** (modèle Yango : une a
 
 | # | Application | Sous-domaine | Public | Contenu principal | Identité |
 |---|---|---|---|---|---|
-| 1 | **Usager** | `quqliter.ci` (apex) + `www.quqliter.ci` | Grand public, compte client optionnel | Recherche, fiches, avis, réservations, awards, méthodologie, compte client | Très blanche, chaleureuse ; bleu/vert en accents ; mobile-first, PWA |
-| 2 | **Pro** | `pro.quqliter.ci` | Établissements adhérents + accompagnateurs partenaires | Candidature, suivi de statut, abonnement/paiements, réservations, 3D, rapports IA, accompagnement, missions partenaires | « Outil de travail » : menu et en-tête bleu roi, vert pour les succès |
-| 3 | **Agent** | `agent.quqliter.ci` | Évaluateurs terrain | Audits assignés, itinéraire, grille de notation + photos, hors-ligne, rapport | Ultra simple : gros boutons, mobile uniquement, tolérant réseau faible |
-| 4 | **Admin** | `admin.quqliter.ci` | Équipe Quqliter | Validation candidatures, affectations, établissements/badges, abonnements, modération, awards, brochures, stats | Sobre, tableaux, data-viz |
+| 1 | **Usager** | `qualite.ci` (apex) + `www.qualite.ci` | Grand public, compte client optionnel | Recherche, fiches, avis, réservations, awards, méthodologie, compte client | Très blanche, chaleureuse ; bleu/vert en accents ; mobile-first, PWA |
+| 2 | **Pro** | `pro.qualite.ci` | Établissements adhérents + accompagnateurs partenaires | Candidature, suivi de statut, abonnement/paiements, réservations, 3D, rapports IA, accompagnement, missions partenaires | « Outil de travail » : menu et en-tête bleu roi, vert pour les succès |
+| 3 | **Agent** | `agent.qualite.ci` | Évaluateurs terrain | Audits assignés, itinéraire, grille de notation + photos, hors-ligne, rapport | Ultra simple : gros boutons, mobile uniquement, tolérant réseau faible |
+| 4 | **Admin** | `admin.qualite.ci` | Équipe Qualité+ | Validation candidatures, affectations, établissements/badges, abonnements, modération, awards, brochures, stats | Sobre, tableaux, data-viz |
 
 ## 3. Liens entre les applications
 
 ```
- www.quqliter.ci ──« Vous êtes un établissement ? Rejoignez-nous »──▶ pro.quqliter.ci
- pro.quqliter.ci ──« Retour au site grand public »──────────────▶ www.quqliter.ci
+ www.qualite.ci ──« Vous êtes un établissement ? Rejoignez-nous »──▶ pro.qualite.ci
+ pro.qualite.ci ──« Retour au site grand public »──────────────▶ www.qualite.ci
 ```
 
-- **agent.quqliter.ci et admin.quqliter.ci n'ont aucun lien public** : on y entre uniquement par leur page de connexion (comptes créés/invités par l'admin).
-- Les **QR codes** des brochures (gares, comptoirs) et les codes de visite pointent vers `www.quqliter.ci`.
+- **agent.qualite.ci et admin.qualite.ci n'ont aucun lien public** : on y entre uniquement par leur page de connexion (comptes créés/invités par l'admin).
+- Les **QR codes** des brochures (gares, comptoirs) et les codes de visite pointent vers `www.qualite.ci`.
 - Les **e-mails et SMS** renvoient vers l'application du rôle concerné (réservation → usager ou pro ; audit assigné → agent ; candidature validée → pro).
 - Règle d'isolation : un compte usager ne peut **jamais** ouvrir pro/agent/admin ; un compte pro non plus. La sécurité est garantie côté base (RLS), pas seulement côté liens.
 
@@ -108,7 +108,7 @@ Pourquoi un seul projet plutôt que 4 apps Next.js :
 
 Alternative si l'équipe grandit : passer à un monorepo de 4 apps distinctes (`apps/usager`, `apps/pro`…) partageant les mêmes paquets — possible plus tard sans refonte, puisque le code sera déjà rangé par univers.
 
-**Développement local** : `quqliter.local`, `pro.quqliter.local`, `agent.quqliter.local`, `admin.quqliter.local` dans le fichier hosts (ou paramètre `?app=` en dev).
+**Développement local** : `qualite.local`, `pro.qualite.local`, `agent.qualite.local`, `admin.qualite.local` dans le fichier hosts (ou paramètre `?app=` en dev).
 
 ## 6. Flux de données transverses
 
@@ -143,7 +143,7 @@ Le prototype actuel (`web/`, données localStorage) contient déjà tous les éc
 
 ## 9. Points à valider
 
-1. **Nom et domaines** : `quqliter.ci` / `pro.quqliter.ci` / `agent.quqliter.ci` / `admin.quqliter.ci` (remplacer `[NOM]` si autre choix).
+1. **Nom et domaines** : `qualite.ci` / `pro.qualite.ci` / `agent.qualite.ci` / `admin.qualite.ci` (remplacer `[NOM]` si autre choix).
 2. **Un seul projet Next.js + routage par sous-domaine** — validé ? (vs 4 apps distinctes)
 3. **L'app Pro regroupe établissement ET accompagnateur** (deux espaces dans une même app, deux types de compte), comme spécifié.
 4. **Supabase** comme socle unique (Auth + Postgres + RLS + Storage + cron).

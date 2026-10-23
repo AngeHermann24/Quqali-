@@ -1,6 +1,6 @@
 # App Pro — Livrable 1 : Moodboard & système de design
 
-> **Quqliter Pro** (`pro.quqliter.ci`, en dev `localhost:3001`) — l'espace de travail des établissements : candidature, audit, abonnement, pilotage quotidien. **Réservée aux établissements** : aucun lien vers l'app usager, les agents ou l'admin.
+> **Qualité+ Pro** (`pro.qualite.ci`, en dev `localhost:3001`) — l'espace de travail des établissements : candidature, audit, abonnement, pilotage quotidien. **Réservée aux établissements** : aucun lien vers l'app usager, les agents ou l'admin.
 
 ---
 

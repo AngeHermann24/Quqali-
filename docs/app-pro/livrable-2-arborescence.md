@@ -1,6 +1,6 @@
 # App Pro — Livrable 2 : Arborescence des écrans et parcours établissement
 
-> `pro.quqliter.ci` (dev : `localhost:3001`). **Un seul type de compte : établissement.** L'app a deux états qui changent la navigation : **avant publication** (parcours de certification) et **après publication** (outil de pilotage). Légende : ✅ existe dans le prototype · 🆕 à créer · 🔒 compte requis.
+> `pro.qualite.ci` (dev : `localhost:3001`). **Un seul type de compte : établissement.** L'app a deux états qui changent la navigation : **avant publication** (parcours de certification) et **après publication** (outil de pilotage). Légende : ✅ existe dans le prototype · 🆕 à créer · 🔒 compte requis.
 
 ---
 
@@ -59,7 +59,7 @@ Dossier de candidature (assistant, sauvegarde auto)
    │   ├─ ≥ 80 % → félicitations → /abonnement
    │   └─ < 80 % → écran bienveillant → « Demander un accompagnement »
    └─ /accompagnement         ✅→/pro/accompagnement formulaire
-                             (par Quqliter / partenaire accrédité)
+                             (par Qualité+ / partenaire accrédité)
                              puis suivi : plan d'action à cocher,
                              %, messages, bouton « Demander le réaudit »
 /documents                 🆕 🔒 pièces du dossier : requis / reçus / à refaire,

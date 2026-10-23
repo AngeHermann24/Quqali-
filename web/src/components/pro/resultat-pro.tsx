@@ -53,7 +53,7 @@ function rapportPdf(d: Dossier) {
   }
 
   rect(50, y - 10, 495, 60, SURFACE);
-  texte(62, y + 24, admis ? "Décision : admis au label Quqliter. Choisissez votre pack pour publier votre fiche." : `Décision : sous le seuil de ${SITE.seuil} %.`, { taille: 9 });
+  texte(62, y + 24, admis ? "Décision : admis au label Qualité+. Choisissez votre pack pour publier votre fiche." : `Décision : sous le seuil de ${SITE.seuil} %.`, { taille: 9 });
   texte(62, y + 10, admis ? "Le paiement de l'abonnement n'influence jamais la note obtenue." : `Réaudit possible à partir du ${dateFr(ajouterJours(a.date, delaiReaudit(a.global)))}.`, { taille: 8.5, c: GRIS });
 
   rect(50, 70, 495, 1.5, VERT);
@@ -139,7 +139,7 @@ export function ResultatPro() {
           </Bloc>
         </div>
 
-        <button type="button" className="btn btn-outline w-full" onClick={() => telecharger(rapportPdf(dossier), `quqliter-rapport-audit-${dossier.id}.pdf`)}>
+        <button type="button" className="btn btn-outline w-full" onClick={() => telecharger(rapportPdf(dossier), `qualite-rapport-audit-${dossier.id}.pdf`)}>
           <Download className="size-4" aria-hidden /> Télécharger le rapport PDF
         </button>
 

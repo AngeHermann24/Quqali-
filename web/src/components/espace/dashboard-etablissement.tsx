@@ -467,7 +467,7 @@ function AvisItem({
           ))}
         </div>
       )}
-      {statut === "signale" && <p className="mt-2 text-xs text-muted">Signalé à l&apos;équipe Quqliter : masqué en attendant l&apos;examen.</p>}
+      {statut === "signale" && <p className="mt-2 text-xs text-muted">Signalé à l&apos;équipe Qualité+ : masqué en attendant l&apos;examen.</p>}
       {onSignaler && (
         <button type="button" className="mt-2 text-xs font-semibold text-muted hover:text-primary" onClick={onSignaler}>
           Signaler cet avis

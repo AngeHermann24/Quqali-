@@ -37,7 +37,7 @@ function ApercuQr({ url }: { url: string }) {
   );
 }
 
-const URL_ETABLISSEMENTS = "https://quqliter.ci/etablissements";
+const URL_ETABLISSEMENTS = "https://qualite.ci/etablissements";
 
 export function BrochuresAdmin() {
   const [dossier] = useStockage<Dossier>(CLES.dossier);
@@ -45,8 +45,8 @@ export function BrochuresAdmin() {
   const [slugChoisi, setSlugChoisi] = useState(ETABLISSEMENTS[0].slug);
 
   const cibles = [
-    ...ETABLISSEMENTS.map((e) => ({ id: e.slug, nom: e.nom, secteur: e.secteur, url: `https://quqliter.ci/etablissements/${e.slug}` })),
-    ...(dossier?.statut === "admis" ? [{ id: dossier.id, nom: dossier.nom, secteur: dossier.secteur, url: "https://quqliter.ci/pro" }] : []),
+    ...ETABLISSEMENTS.map((e) => ({ id: e.slug, nom: e.nom, secteur: e.secteur, url: `https://qualite.ci/etablissements/${e.slug}` })),
+    ...(dossier?.statut === "admis" ? [{ id: dossier.id, nom: dossier.nom, secteur: dossier.secteur, url: "https://qualite.ci/pro" }] : []),
   ];
   const cible = cibles.find((c) => c.id === slugChoisi) ?? cibles[0];
   const urlAvis = `${cible.url}#avis`;
@@ -66,9 +66,9 @@ export function BrochuresAdmin() {
           </label>
           <div className="mt-3 flex items-center gap-3">
             <ApercuQr url={URL_ETABLISSEMENTS} />
-            <p className="text-xs text-muted">QR → quqliter.ci/etablissements</p>
+            <p className="text-xs text-muted">QR → qualite.ci/etablissements</p>
           </div>
-          <button type="button" className="btn btn-primary mt-4" onClick={() => telecharger(genererAfficheGarePdf({ lieu: lieu || "les gares" }), "quqliter-affiche-gares.pdf")}>
+          <button type="button" className="btn btn-primary mt-4" onClick={() => telecharger(genererAfficheGarePdf({ lieu: lieu || "les gares" }), "qualite-affiche-gares.pdf")}>
             <Download className="size-4" aria-hidden /> Générer l&apos;affiche A4
           </button>
         </Bloc>
@@ -95,7 +95,7 @@ export function BrochuresAdmin() {
               Code de visite : <strong className="font-mono text-ink">{code}</strong>
             </p>
           </div>
-          <button type="button" className="btn btn-primary mt-4" onClick={() => telecharger(genererCarteAvisPdf({ nom: cible.nom, url: urlAvis, code }), `quqliter-carte-avis-${cible.id}.pdf`)}>
+          <button type="button" className="btn btn-primary mt-4" onClick={() => telecharger(genererCarteAvisPdf({ nom: cible.nom, url: urlAvis, code }), `qualite-carte-avis-${cible.id}.pdf`)}>
             <Download className="size-4" aria-hidden /> Générer la carte
           </button>
         </Bloc>

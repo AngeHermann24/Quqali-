@@ -1,6 +1,6 @@
 # App Usager — Livrable 1 : Moodboard & système de design
 
-> Application **Quqliter Usager** (`quqliter.ci`) — guide de confiance de la qualité de service à Abidjan. **Réservée aux usagers** : aucun lien, bouton ou mention vers les espaces établissement, agent, accompagnateur ou admin (règle d'isolement, déjà appliquée sur le site actuel).
+> Application **Qualité+ Usager** (`qualite.ci`) — guide de confiance de la qualité de service à Abidjan. **Réservée aux usagers** : aucun lien, bouton ou mention vers les espaces établissement, agent, accompagnateur ou admin (règle d'isolement, déjà appliquée sur le site actuel).
 
 ---
 
@@ -153,6 +153,6 @@ Règle : titres **très grands et très gras**, beaucoup d'air autour (les secti
 1. Palette : ajout d'un **bleu profond #16296B** (dégradés/sombre) et d'un **or #D4A017** réservé aux Awards — ok ?
 2. Le verre dépoli partout suppose des téléphones récents : fallback opaque prévu sur entrée de gamme.
 3. Carte : MVP en Leaflet/OSM stylisé (déjà en place), passage à Mapbox GL 3D en production — d'accord ?
-4. Le nom définitif (actuellement **Quqliter**) pour les maquettes du livrable 2.
+4. Le nom définitif (actuellement **Qualité+**) pour les maquettes du livrable 2.
 
 J'attends ta validation avant le livrable 2 (maquettes : lancement, connexion, accueil avec carte, fiche établissement).

@@ -123,7 +123,7 @@ export function modererAvis(saisie: SaisieAvis, ctx: ContexteModeration, mainten
 
   const jour = maintenant.slice(0, 10);
   if (ctx.avisDuCompte.filter((a) => a.date.startsWith(jour)).length >= 3)
-    return { statut: "en_verification", motif: "Volume inhabituel d'avis : votre avis sera publié après vérification par l'équipe Quqliter." };
+    return { statut: "en_verification", motif: "Volume inhabituel d'avis : votre avis sera publié après vérification par l'équipe Qualité+." };
   return { statut: "publie" };
 }
 

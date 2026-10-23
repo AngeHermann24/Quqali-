@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
-const EVENEMENT = "quqliter-stockage";
+const EVENEMENT = "qualite-stockage";
 
 function abonner(callback: () => void) {
   window.addEventListener("storage", callback);

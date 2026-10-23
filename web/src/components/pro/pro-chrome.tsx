@@ -51,7 +51,7 @@ export function ProChrome({ children }: { children: ReactNode }) {
     <>
       <header className="sticky top-0 z-50 bg-primary text-white">
         <div className="container-page flex h-14 items-center justify-between gap-3">
-          <Link href={publie ? "/pro" : "/pro/parcours"} className="flex items-center gap-2" aria-label="Quqliter Pro">
+          <Link href={publie ? "/pro" : "/pro/parcours"} className="flex items-center gap-2" aria-label="Qualité+ Pro">
             <Logo light />
             <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">Pro</span>
           </Link>

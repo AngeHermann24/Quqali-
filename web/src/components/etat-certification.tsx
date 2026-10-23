@@ -32,7 +32,7 @@ export function BandeauGestion({ slug, nom }: { slug: string; nom: string }) {
       <p className="flex items-start gap-2 rounded-2xl border border-line bg-surface p-4 text-sm text-ink">
         <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
         {etat === "suspendu"
-          ? `${nom} est suspendu de la plateforme depuis le ${formatDate(g!.suspendu!)} : sa certification Quqliter n'est plus en vigueur.`
+          ? `${nom} est suspendu de la plateforme depuis le ${formatDate(g!.suspendu!)} : sa certification Qualité+ n'est plus en vigueur.`
           : `Le badge « Qualité certifiée » de ${nom} a été retiré le ${formatDate(g!.badgeRetire!)} : l'établissement fait l'objet d'un contrôle de conformité.`}
       </p>
     </div>

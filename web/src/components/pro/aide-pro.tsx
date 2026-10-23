@@ -47,8 +47,8 @@ export function AidePro() {
           <a href="tel:+2252700000000" className="btn btn-outline w-full">
             <Phone className="size-4" aria-hidden /> +225 27 00 00 00 00
           </a>
-          <a href="mailto:support@quqliter.ci" className="btn btn-outline w-full">
-            <MessageCircle className="size-4" aria-hidden /> support@quqliter.ci
+          <a href="mailto:support@qualite.ci" className="btn btn-outline w-full">
+            <MessageCircle className="size-4" aria-hidden /> support@qualite.ci
           </a>
         </div>
       </div>

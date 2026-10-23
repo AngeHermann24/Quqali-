@@ -140,7 +140,7 @@ export function ConnexionPro() {
           <h1 className="font-display text-3xl font-extrabold text-ink">Code de vérification</h1>
           <p className="mt-2 text-sm text-muted">Envoyé au +225 {tel}</p>
           <div className="mt-4 rounded-2xl border border-primary/20 bg-primary-soft/60 p-3 text-sm text-ink">
-            <span className="font-semibold">SMS reçu —</span> Votre code Quqliter Pro : <span className="font-display text-lg font-bold tracking-widest text-primary">{codeEnvoye}</span>{" "}
+            <span className="font-semibold">SMS reçu —</span> Votre code Qualité+ Pro : <span className="font-display text-lg font-bold tracking-widest text-primary">{codeEnvoye}</span>{" "}
             <span className="text-xs text-muted">(simulation)</span>
           </div>
           <div className="mt-5 flex justify-center gap-3">

@@ -8,8 +8,8 @@ export function Splash() {
   const [part, setPart] = useState(false);
 
   useEffect(() => {
-    const dejaVu = sessionStorage.getItem("quqliter-splash");
-    sessionStorage.setItem("quqliter-splash", "1");
+    const dejaVu = sessionStorage.getItem("qualite-splash");
+    sessionStorage.setItem("qualite-splash", "1");
     const t1 = setTimeout(() => setPart(true), dejaVu ? 60 : 2000);
     const t2 = setTimeout(() => setVisible(false), dejaVu ? 420 : 2600);
     return () => {
@@ -39,7 +39,7 @@ export function Splash() {
           />
         </svg>
         <p className="mt-5 font-display text-3xl font-extrabold text-white opacity-0 [animation:monte_.6s_1.4s_ease_forwards]">
-          Quqliter
+          Qualité+
         </p>
         <p className="mt-1 text-sm text-[#C7D2FE] opacity-0 [animation:monte_.6s_1.55s_ease_forwards]">
           Le label de confiance — Abidjan

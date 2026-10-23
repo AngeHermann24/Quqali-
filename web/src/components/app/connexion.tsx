@@ -141,7 +141,7 @@ export function Connexion() {
             <p className="mt-5 flex items-start gap-2.5 rounded-2xl bg-surface p-3.5 text-sm text-ink">
               <MessageSquareText className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
               <span>
-                <strong>Quqliter</strong> — votre code de connexion est <strong className="tracking-widest">{codeEnvoye}</strong>
+                <strong>Qualité+</strong> — votre code de connexion est <strong className="tracking-widest">{codeEnvoye}</strong>
               </span>
             </p>
           )}

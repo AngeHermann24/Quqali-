@@ -1,5 +1,5 @@
 export const SITE = {
-  name: "Quqliter",
+  name: "Qualité+",
   tagline: "Le label de confiance des établissements de Côte d'Ivoire",
   description:
     "Hôtels, restaurants et établissements de santé audités sur place. Seuls ceux qui atteignent 80 % de performance sont listés.",

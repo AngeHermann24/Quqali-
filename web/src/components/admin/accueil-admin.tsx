@@ -63,7 +63,7 @@ export function AccueilAdmin() {
 
   return (
     <>
-      <EspaceHeader role="Administration" titre="Back-office Quqliter" sousTitre="Pilotage de la plateforme : candidatures, audits, établissements, paiements et réputation." />
+      <EspaceHeader role="Administration" titre="Back-office Qualité+" sousTitre="Pilotage de la plateforme : candidatures, audits, établissements, paiements et réputation." />
       <div className="container-page space-y-5 py-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {kpis.map((k) => {

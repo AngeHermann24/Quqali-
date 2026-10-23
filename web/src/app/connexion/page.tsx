@@ -4,7 +4,7 @@ import { Connexion } from "@/components/app/connexion";
 
 export const metadata: Metadata = {
   title: "Connexion",
-  description: "Connectez-vous à Quqliter avec votre numéro de téléphone.",
+  description: "Connectez-vous à Qualité+ avec votre numéro de téléphone.",
 };
 
 export default function ConnexionPage() {

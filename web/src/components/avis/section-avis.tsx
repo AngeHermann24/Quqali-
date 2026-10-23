@@ -112,7 +112,7 @@ export function SectionAvis({ etablissementId, nom, secteur, avisDemo }: { etabl
                 <p className="text-sm font-semibold text-ink">Votre avis</p>
                 <Pastille ton={a.statut === "en_verification" ? "primaire" : "alerte"}>{STATUTS_AVIS[a.statut]}</Pastille>
               </div>
-              <p className="mt-1 text-xs text-muted">{a.motifRejet ?? "En cours d'examen par l'équipe Quqliter."}</p>
+              <p className="mt-1 text-xs text-muted">{a.motifRejet ?? "En cours d'examen par l'équipe Qualité+."}</p>
               <p className="mt-2 text-sm text-ink/90">{a.commentaire}</p>
             </li>
           ))}
@@ -255,7 +255,7 @@ export function SectionAvis({ etablissementId, nom, secteur, avisDemo }: { etabl
             <p className="text-sm text-muted">
               {resultat.statut === "publie"
                 ? "Votre avis est visible sur la fiche et compte pour les Awards."
-                : (resultat.motifRejet ?? "Votre avis sera publié après vérification par l'équipe Quqliter.")}
+                : (resultat.motifRejet ?? "Votre avis sera publié après vérification par l'équipe Qualité+.")}
             </p>
             <p className="flex items-center justify-center gap-1.5 text-xs text-muted">
               <QrCode className="size-4" aria-hidden /> Visite vérifiée par {resultat.preuve.type === "reservation" ? "réservation" : "code"}.
