@@ -22,7 +22,7 @@ export function ConnexionPro() {
   const [etape, setEtape] = useState<Etape>("choix");
   const [tel, setTel] = useState("");
   const [code, setCode] = useState("");
-  const [codeEnvoye] = useState(() => String(Math.floor(1000 + Math.random() * 9000)));
+  const [codeEnvoye, setCodeEnvoye] = useState("");
   const [responsable, setResponsable] = useState("");
   const [pin, setPin] = useState("");
   const [erreur, setErreur] = useState("");
@@ -119,7 +119,16 @@ export function ConnexionPro() {
               className="input h-12 flex-1 text-lg font-semibold"
             />
           </div>
-          <button type="button" disabled={tel.replace(/\D/g, "").length < 8} onClick={() => setEtape("code")} className="btn btn-primary mt-5 w-full disabled:opacity-40">
+          <button
+            type="button"
+            disabled={tel.replace(/\D/g, "").length < 8}
+            onClick={() => {
+              setCodeEnvoye(String(Math.floor(1000 + Math.random() * 9000)));
+              setCode("");
+              setEtape("code");
+            }}
+            className="btn btn-primary mt-5 w-full disabled:opacity-40"
+          >
             <Phone className="size-4" aria-hidden /> Recevoir le code
           </button>
           <Retour onClick={() => setEtape("choix")} />

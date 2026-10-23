@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { ArrowLeft, CalendarCheck, CircleCheck, Clock, Mail, MessageSquare, Minus, Plus } from "lucide-react";
 import type { Secteur } from "@/lib/data";
 import { formatFCFA } from "@/lib/facture-pdf";
@@ -22,8 +22,9 @@ const aujourdhuiLocal = () => new Date().toISOString().slice(0, 10);
 
 export function WidgetReservation({ etablissementId, nom, secteur, onFermer }: { etablissementId: string; nom: string; secteur: Secteur; onFermer?: () => void }) {
   const { reservations, config, creer, charge } = useReservations(etablissementId, nom, secteur);
-  const [maintenant] = useState(() => new Date().toISOString());
-  const jour = maintenant.slice(0, 10);
+  const [maintenant, setMaintenant] = useState<string | null>(null);
+  useEffect(() => setMaintenant(new Date().toISOString()), []);
+  const jour = maintenant?.slice(0, 10) ?? "";
   const [etape, setEtape] = useState<"choix" | "coordonnees" | "fin">("choix");
   const [date, setDate] = useState(() => ajouterJoursDate(aujourdhuiLocal(), 1));
   const [depart, setDepart] = useState(() => ajouterJoursDate(aujourdhuiLocal(), 3));
@@ -37,7 +38,7 @@ export function WidgetReservation({ etablissementId, nom, secteur, onFermer }: {
   const [erreur, setErreur] = useState("");
   const [resultat, setResultat] = useState<{ reservation: Reservation; messages: MessageEnvoye[] } | null>(null);
 
-  if (!charge) return <div className="h-64 animate-pulse rounded-2xl bg-surface" />;
+  if (!charge || !maintenant) return <div className="h-64 animate-pulse rounded-2xl bg-surface" />;
 
   const max = ajouterJoursDate(jour, config.horizonJours);
   const choixValide = secteur === "hotellerie" ? !!chambreId : !!heure;
