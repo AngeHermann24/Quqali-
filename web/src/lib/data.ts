@@ -1,0 +1,777 @@
+import { normaliser } from "@/lib/format";
+import { POIDS, scoreGlobal } from "@/lib/scores";
+import { SITE } from "@/lib/site";
+import { VISITE_DEMO } from "@/lib/visite3d";
+
+export type Secteur = "hotellerie" | "restauration" | "sante" | "services" | "education" | "commerce" | "transport";
+export type Pack = "basique" | "premium";
+export type { CritereKey, Scores } from "@/lib/scores";
+export { POIDS, scoreGlobal };
+import type { CritereKey, Scores } from "@/lib/scores";
+
+export interface Avis {
+  auteur: string;
+  date: string;
+  note: number;
+  commentaire: string;
+  reponse?: string;
+}
+
+export interface Etablissement {
+  slug: string;
+  nom: string;
+  secteur: Secteur;
+  sousType: string;
+  ville: string;
+  commune: string;
+  quartier: string;
+  adresse: string;
+  coords: [number, number];
+  pack: Pack;
+  aLaUne?: boolean;
+  scores: Scores;
+  dateAudit: string;
+  prochainControle: string;
+  description: string;
+  services: string[];
+  horaires: { jours: string; heures: string }[];
+  telephone: string;
+  whatsapp: string;
+  prix: string;
+  avis: Avis[];
+  awards?: string[];
+  visite3d?: string;
+}
+
+export const SECTEURS: Record<Secteur, { label: string; nom: string; description: string; reservation: string }> = {
+  hotellerie: {
+    label: "Hôtels",
+    nom: "Hôtellerie",
+    description: "Hôtels, résidences et maisons d'hôtes",
+    reservation: "Réserver une chambre",
+  },
+  restauration: {
+    label: "Restaurants",
+    nom: "Restauration",
+    description: "Restaurants, maquis et allocodromes",
+    reservation: "Réserver une table",
+  },
+  sante: {
+    label: "Santé",
+    nom: "Santé",
+    description: "Hôpitaux, cliniques et centres médicaux",
+    reservation: "Prendre rendez-vous",
+  },
+  services: {
+    label: "Services",
+    nom: "Services",
+    description: "Coiffure, pressing, garages et prestations de service",
+    reservation: "Prendre rendez-vous",
+  },
+  education: {
+    label: "Éducation",
+    nom: "Éducation",
+    description: "Écoles, instituts et centres de formation",
+    reservation: "Réserver une visite",
+  },
+  commerce: {
+    label: "Centres commerciaux",
+    nom: "Commerce",
+    description: "Centres commerciaux, galeries et grandes surfaces",
+    reservation: "Réserver",
+  },
+  transport: {
+    label: "Transport",
+    nom: "Transport",
+    description: "Compagnies de transport, navettes et location",
+    reservation: "Réserver un trajet",
+  },
+};
+
+export const SECTEUR_LIST = Object.keys(SECTEURS) as Secteur[];
+
+export const CRITERES: { key: CritereKey; label: string; poids: number; description: string; exemples: string[] }[] = [
+  {
+    key: "hygiene",
+    label: "Hygiène",
+    poids: POIDS.hygiene,
+    description: "Propreté des espaces, chaîne du froid, gestion des déchets, lutte contre les nuisibles.",
+    exemples: ["Propreté des chambres, salles et cuisines", "Chaîne du froid et stockage", "Déchets et lutte antiparasitaire", "Stérilisation (santé)"],
+  },
+  {
+    key: "accueil",
+    label: "Accueil",
+    poids: POIDS.accueil,
+    description: "Courtoisie, délais de prise en charge, information du client, gestion des réclamations.",
+    exemples: ["Délai de prise en charge", "Courtoisie et écoute", "Information claire sur les prix et services", "Traitement des réclamations"],
+  },
+  {
+    key: "presentation",
+    label: "Présentation du personnel",
+    poids: POIDS.presentation,
+    description: "Tenue, identification, hygiène corporelle et posture professionnelle des équipes.",
+    exemples: ["Tenue propre et adaptée au poste", "Badge nominatif visible", "Hygiène corporelle", "Posture et langage professionnels"],
+  },
+  {
+    key: "gouvernance",
+    label: "Gouvernance",
+    poids: POIDS.gouvernance,
+    description: "Conformité légale, transparence des prix, sécurité, organisation et formation des équipes.",
+    exemples: ["Autorisations et agréments à jour", "Prix affichés, facture conforme", "Sécurité incendie", "Organisation RH et formation"],
+  },
+];
+
+
+export const noteMoyenne = (avis: Avis[]) =>
+  avis.length ? Math.round((avis.reduce((t, a) => t + a.note, 0) / avis.length) * 10) / 10 : 0;
+
+export const ETABLISSEMENTS: Etablissement[] = [
+  {
+    slug: "hotel-lagune-bleue",
+    nom: "Hôtel Lagune Bleue",
+    secteur: "hotellerie",
+    sousType: "Hôtel 4 étoiles",
+    ville: "Abidjan",
+    commune: "Cocody",
+    quartier: "Riviera Golf",
+    adresse: "Boulevard de France, Riviera Golf, Cocody",
+    coords: [5.342, -3.962],
+    pack: "premium",
+    visite3d: VISITE_DEMO,
+    aLaUne: true,
+    scores: { hygiene: 93, accueil: 91, presentation: 88, gouvernance: 90 },
+    dateAudit: "2026-07-14",
+    prochainControle: "2027-01-14",
+    description:
+      "Hôtel d'affaires et de loisirs face à la lagune Ébrié : 86 chambres climatisées, piscine, salles de réunion et restaurant panoramique. Navette aéroport sur demande.",
+    services: ["Wi-Fi gratuit", "Piscine", "Restaurant", "Parking sécurisé", "Salle de réunion", "Navette aéroport", "Paiement Mobile Money"],
+    horaires: [{ jours: "Réception", heures: "24 h/24, 7 j/7" }],
+    telephone: "+225 27 22 40 10 01",
+    whatsapp: "2250700000001",
+    prix: "À partir de 65 000 FCFA / nuit",
+    avis: [
+      { auteur: "Aïcha K.", date: "2026-09-28", note: 5, commentaire: "Chambre impeccable, personnel souriant et très professionnel. On sent que tout est contrôlé.", reponse: "Merci Aïcha, toute l'équipe est ravie de vous avoir accueillie !" },
+      { auteur: "Jean-Marc T.", date: "2026-09-10", note: 4, commentaire: "Très bon séjour d'affaires. Le petit-déjeuner pourrait commencer un peu plus tôt." },
+      { auteur: "Fatou D.", date: "2026-08-22", note: 5, commentaire: "Accueil exceptionnel, piscine propre, je recommande." },
+    ],
+    awards: ["Meilleur hôtel 2025"],
+  },
+  {
+    slug: "residence-les-flamboyants",
+    nom: "Résidence Les Flamboyants",
+    secteur: "hotellerie",
+    sousType: "Résidence hôtelière",
+    ville: "Abidjan",
+    commune: "Marcory",
+    quartier: "Zone 4",
+    adresse: "Rue du Dr Blanchard, Zone 4, Marcory",
+    coords: [5.293, -3.98],
+    pack: "basique",
+    scores: { hygiene: 86, accueil: 84, presentation: 85, gouvernance: 82 },
+    dateAudit: "2026-06-03",
+    prochainControle: "2026-12-03",
+    description: "Appartements meublés du studio au 3 pièces, idéals pour les séjours de moyenne durée. Ménage quotidien et gardiennage 24 h/24.",
+    services: ["Wi-Fi gratuit", "Cuisine équipée", "Ménage quotidien", "Gardiennage 24 h/24", "Groupe électrogène"],
+    horaires: [{ jours: "Réception", heures: "07:00 – 22:00, 7 j/7" }],
+    telephone: "+225 27 21 35 20 02",
+    whatsapp: "2250700000002",
+    prix: "À partir de 35 000 FCFA / nuit",
+    avis: [
+      { auteur: "Koffi A.", date: "2026-09-02", note: 4, commentaire: "Appartement propre et calme, bon rapport qualité-prix." },
+      { auteur: "Mariam S.", date: "2026-07-19", note: 4, commentaire: "Personnel discret et efficace. Wi-Fi parfois lent." },
+    ],
+  },
+  {
+    slug: "hotel-bassam-plage",
+    nom: "Hôtel Bassam Plage",
+    secteur: "hotellerie",
+    sousType: "Hôtel balnéaire",
+    ville: "Grand-Bassam",
+    commune: "Grand-Bassam",
+    quartier: "Quartier France",
+    adresse: "Boulevard Treich-Laplène, Quartier France, Grand-Bassam",
+    coords: [5.196, -3.738],
+    pack: "premium",
+    visite3d: VISITE_DEMO,
+    scores: { hygiene: 88, accueil: 92, presentation: 84, gouvernance: 86 },
+    dateAudit: "2026-05-20",
+    prochainControle: "2026-11-20",
+    description: "Hôtel en bord de mer au cœur du quartier historique classé à l'UNESCO. Bungalows, restaurant de poissons grillés et accès direct à la plage.",
+    services: ["Accès plage", "Restaurant", "Bar", "Wi-Fi gratuit", "Parking", "Excursions"],
+    horaires: [{ jours: "Réception", heures: "24 h/24, 7 j/7" }],
+    telephone: "+225 27 21 30 10 03",
+    whatsapp: "2250700000003",
+    prix: "À partir de 45 000 FCFA / nuit",
+    avis: [
+      { auteur: "Sandrine B.", date: "2026-08-30", note: 5, commentaire: "Cadre magnifique et équipe aux petits soins. Les bungalows sont très propres." },
+      { auteur: "Ibrahim C.", date: "2026-08-12", note: 4, commentaire: "Très bon accueil, restaurant délicieux." },
+    ],
+    awards: ["Prix de l'accueil 2025"],
+  },
+  {
+    slug: "saveurs-d-akwaba",
+    nom: "Saveurs d'Akwaba",
+    secteur: "restauration",
+    sousType: "Restaurant ivoirien gastronomique",
+    ville: "Abidjan",
+    commune: "Plateau",
+    quartier: "Plateau Centre",
+    adresse: "Avenue Chardy, Plateau",
+    coords: [5.322, -4.018],
+    pack: "premium",
+    visite3d: VISITE_DEMO,
+    aLaUne: true,
+    scores: { hygiene: 95, accueil: 89, presentation: 91, gouvernance: 92 },
+    dateAudit: "2026-08-05",
+    prochainControle: "2027-02-05",
+    description: "Cuisine ivoirienne revisitée : kédjénou, foutou, attiéké poisson braisé et desserts maison. Cuisine ouverte et produits tracés auprès de producteurs locaux.",
+    services: ["Climatisation", "Terrasse", "Salle privée", "Menu du jour", "Livraison", "Paiement Mobile Money"],
+    horaires: [
+      { jours: "Lundi – Vendredi", heures: "11:30 – 15:00 · 19:00 – 23:00" },
+      { jours: "Samedi", heures: "19:00 – 23:30" },
+      { jours: "Dimanche", heures: "Fermé" },
+    ],
+    telephone: "+225 27 20 21 30 04",
+    whatsapp: "2250700000004",
+    prix: "Menu à partir de 12 000 FCFA",
+    avis: [
+      { auteur: "Paul-Henri N.", date: "2026-10-04", note: 5, commentaire: "La meilleure table du Plateau. Cuisine visible depuis la salle, c'est rassurant.", reponse: "Merci beaucoup ! Notre cuisine ouverte est un engagement de transparence." },
+      { auteur: "Awa T.", date: "2026-09-18", note: 5, commentaire: "Service rapide le midi, personnel élégant." },
+      { auteur: "Yves L.", date: "2026-09-01", note: 4, commentaire: "Excellent kédjénou, un peu bruyant aux heures de pointe." },
+    ],
+    awards: ["Meilleur restaurant 2025"],
+  },
+  {
+    slug: "le-maquis-dore",
+    nom: "Le Maquis Doré",
+    secteur: "restauration",
+    sousType: "Maquis",
+    ville: "Abidjan",
+    commune: "Cocody",
+    quartier: "Deux-Plateaux",
+    adresse: "Rue des Jardins, Deux-Plateaux Vallon, Cocody",
+    coords: [5.364, -3.999],
+    pack: "basique",
+    aLaUne: true,
+    scores: { hygiene: 87, accueil: 92, presentation: 85, gouvernance: 83 },
+    dateAudit: "2026-07-01",
+    prochainControle: "2027-01-01",
+    description: "Le maquis convivial des Deux-Plateaux : poulet braisé, poisson grillé, alloco et ambiance musicale le week-end.",
+    services: ["Terrasse", "Grillades", "Ambiance musicale", "Paiement Mobile Money"],
+    horaires: [{ jours: "Tous les jours", heures: "12:00 – 00:00" }],
+    telephone: "+225 27 22 41 50 05",
+    whatsapp: "2250700000005",
+    prix: "Plats de 3 500 à 9 000 FCFA",
+    avis: [
+      { auteur: "Didier G.", date: "2026-09-25", note: 5, commentaire: "Un maquis propre avec des serveurs en tenue, ça change tout !" },
+      { auteur: "Nadia O.", date: "2026-09-06", note: 4, commentaire: "Poisson braisé excellent, attente un peu longue le samedi soir." },
+    ],
+  },
+  {
+    slug: "allocodrome-chez-tantie",
+    nom: "Allocodrome Chez Tantie",
+    secteur: "restauration",
+    sousType: "Allocodrome",
+    ville: "Abidjan",
+    commune: "Treichville",
+    quartier: "Avenue 16",
+    adresse: "Avenue 16, Rue 12, Treichville",
+    coords: [5.299, -4.008],
+    pack: "basique",
+    scores: { hygiene: 84, accueil: 88, presentation: 81, gouvernance: 82 },
+    dateAudit: "2026-04-15",
+    prochainControle: "2026-10-30",
+    description: "Alloco, brochettes et poulet piqué préparés devant vous. Un établissement populaire qui a fait le choix de l'excellence en hygiène.",
+    services: ["À emporter", "Grillades", "Paiement Mobile Money"],
+    horaires: [{ jours: "Tous les jours", heures: "17:00 – 01:00" }],
+    telephone: "+225 27 21 24 60 06",
+    whatsapp: "2250700000006",
+    prix: "Plats de 1 500 à 5 000 FCFA",
+    avis: [{ auteur: "Serge K.", date: "2026-08-14", note: 4, commentaire: "Le meilleur alloco de Treichville et tout est propre." }],
+  },
+  {
+    slug: "le-kedjenou-de-yop",
+    nom: "Le Kédjénou de Yop",
+    secteur: "restauration",
+    sousType: "Restaurant ivoirien",
+    ville: "Abidjan",
+    commune: "Yopougon",
+    quartier: "Selmer",
+    adresse: "Carrefour Selmer, Yopougon",
+    coords: [5.34, -4.085],
+    pack: "basique",
+    scores: { hygiene: 83, accueil: 86, presentation: 82, gouvernance: 84 },
+    dateAudit: "2026-06-21",
+    prochainControle: "2026-12-21",
+    description: "Spécialités de kédjénou de poulet et de pintade cuits à l'étouffée dans la canari, servis avec attiéké ou riz.",
+    services: ["Climatisation", "Livraison", "Menu du jour"],
+    horaires: [
+      { jours: "Lundi – Samedi", heures: "11:00 – 22:00" },
+      { jours: "Dimanche", heures: "12:00 – 18:00" },
+    ],
+    telephone: "+225 27 23 45 70 07",
+    whatsapp: "2250700000007",
+    prix: "Plats de 3 000 à 7 000 FCFA",
+    avis: [
+      { auteur: "Rokia F.", date: "2026-09-20", note: 4, commentaire: "Bon accueil, plats généreux." },
+      { auteur: "Hervé M.", date: "2026-08-03", note: 4, commentaire: "Salle propre et climatisée, prix corrects." },
+    ],
+  },
+  {
+    slug: "clinique-les-palmiers",
+    nom: "Clinique Les Palmiers",
+    secteur: "sante",
+    sousType: "Clinique pluridisciplinaire",
+    ville: "Abidjan",
+    commune: "Cocody",
+    quartier: "Angré",
+    adresse: "Boulevard Latrille, Angré 8e tranche, Cocody",
+    coords: [5.395, -3.985],
+    pack: "premium",
+    visite3d: VISITE_DEMO,
+    aLaUne: true,
+    scores: { hygiene: 94, accueil: 88, presentation: 92, gouvernance: 91 },
+    dateAudit: "2026-08-19",
+    prochainControle: "2027-02-19",
+    description: "Médecine générale, pédiatrie, gynécologie, imagerie et laboratoire. Urgences 24 h/24 et tarifs communiqués avant chaque prise en charge.",
+    services: ["Urgences 24 h/24", "Laboratoire", "Imagerie", "Pédiatrie", "Gynécologie", "Assurances acceptées", "CMU"],
+    horaires: [
+      { jours: "Urgences", heures: "24 h/24, 7 j/7" },
+      { jours: "Consultations Lun – Sam", heures: "07:30 – 19:00" },
+    ],
+    telephone: "+225 27 22 50 80 08",
+    whatsapp: "2250700000008",
+    prix: "Consultation à partir de 15 000 FCFA",
+    avis: [
+      { auteur: "Christelle A.", date: "2026-10-02", note: 5, commentaire: "Prise en charge rapide aux urgences pédiatriques, personnel rassurant et devis clair.", reponse: "Merci pour votre confiance, prompt rétablissement à votre enfant." },
+      { auteur: "Moussa B.", date: "2026-09-14", note: 4, commentaire: "Très propre, médecins à l'écoute. Attente correcte." },
+    ],
+    awards: ["Meilleur établissement de santé 2025"],
+  },
+  {
+    slug: "polyclinique-du-plateau",
+    nom: "Polyclinique du Plateau",
+    secteur: "sante",
+    sousType: "Polyclinique",
+    ville: "Abidjan",
+    commune: "Plateau",
+    quartier: "Plateau Centre",
+    adresse: "Avenue Lamblin, Plateau",
+    coords: [5.326, -4.021],
+    pack: "premium",
+    visite3d: VISITE_DEMO,
+    scores: { hygiene: 90, accueil: 86, presentation: 89, gouvernance: 93 },
+    dateAudit: "2026-07-28",
+    prochainControle: "2027-01-28",
+    description: "Polyclinique de référence : cardiologie, chirurgie ambulatoire, ophtalmologie et bilans de santé pour les entreprises.",
+    services: ["Cardiologie", "Chirurgie ambulatoire", "Ophtalmologie", "Bilans entreprises", "Assurances acceptées"],
+    horaires: [
+      { jours: "Lundi – Vendredi", heures: "07:00 – 20:00" },
+      { jours: "Samedi", heures: "08:00 – 14:00" },
+    ],
+    telephone: "+225 27 20 22 90 09",
+    whatsapp: "2250700000009",
+    prix: "Consultation à partir de 20 000 FCFA",
+    avis: [
+      { auteur: "Gisèle P.", date: "2026-09-09", note: 5, commentaire: "Organisation parfaite, rendez-vous respecté à l'heure." },
+      { auteur: "Arnaud K.", date: "2026-08-26", note: 4, commentaire: "Très professionnel, facture détaillée et transparente." },
+    ],
+  },
+  {
+    slug: "centre-medical-esperance",
+    nom: "Centre Médical Espérance",
+    secteur: "sante",
+    sousType: "Centre médical",
+    ville: "Abidjan",
+    commune: "Yopougon",
+    quartier: "Niangon",
+    adresse: "Niangon Nord, près de la pharmacie Sainte-Rita, Yopougon",
+    coords: [5.325, -4.1],
+    pack: "basique",
+    scores: { hygiene: 86, accueil: 84, presentation: 88, gouvernance: 85 },
+    dateAudit: "2026-05-30",
+    prochainControle: "2026-11-30",
+    description: "Centre de santé de proximité : médecine générale, soins infirmiers, maternité et vaccination.",
+    services: ["Médecine générale", "Maternité", "Vaccination", "Soins infirmiers", "CMU"],
+    horaires: [
+      { jours: "Lundi – Samedi", heures: "07:00 – 21:00" },
+      { jours: "Dimanche", heures: "08:00 – 13:00" },
+    ],
+    telephone: "+225 27 23 46 10 10",
+    whatsapp: "2250700000010",
+    prix: "Consultation à partir de 5 000 FCFA",
+    avis: [{ auteur: "Bintou Y.", date: "2026-09-11", note: 4, commentaire: "Personnel accueillant et locaux très propres pour un centre de quartier." }],
+  },
+  {
+    slug: "salon-elegance-riviera",
+    nom: "Salon Élégance Riviera",
+    secteur: "services",
+    sousType: "Salon de coiffure et esthétique",
+    ville: "Abidjan",
+    commune: "Cocody",
+    quartier: "Riviera 2",
+    adresse: "Rue des Jardins, Riviera 2, Cocody",
+    coords: [5.362, -3.972],
+    pack: "premium",
+    visite3d: VISITE_DEMO,
+    aLaUne: true,
+    scores: { hygiene: 90, accueil: 92, presentation: 91, gouvernance: 85 },
+    dateAudit: "2026-08-22",
+    prochainControle: "2027-02-22",
+    description: "Salon de coiffure mixte et institut d'esthétique : tresses, soins, manucure. Matériel stérilisé et tarifs affichés.",
+    services: ["Coiffure femme et homme", "Esthétique", "Produits capillaires", "Paiement Mobile Money", "Climatisation"],
+    horaires: [{ jours: "Mardi – Dimanche", heures: "09:00 – 20:00" }],
+    telephone: "+225 07 07 15 30 11",
+    whatsapp: "2250707153011",
+    prix: "Prestations de 3 000 à 25 000 FCFA",
+    avis: [
+      { auteur: "Aminata D.", date: "2026-10-01", note: 5, commentaire: "Salon très propre, on respecte l'heure du rendez-vous." },
+      { auteur: "Christelle K.", date: "2026-08-30", note: 4, commentaire: "Personnel souriant et bien présenté, matériel impeccable." },
+    ],
+  },
+  {
+    slug: "pressing-express-zone4",
+    nom: "Pressing Express Zone 4",
+    secteur: "services",
+    sousType: "Pressing",
+    ville: "Abidjan",
+    commune: "Marcory",
+    quartier: "Zone 4",
+    adresse: "Boulevard VGE, Zone 4, Marcory",
+    coords: [5.297, -3.986],
+    pack: "basique",
+    scores: { hygiene: 84, accueil: 85, presentation: 83, gouvernance: 82 },
+    dateAudit: "2026-06-14",
+    prochainControle: "2026-12-14",
+    description: "Pressing rapide : dépôt le matin, retrait le soir. Repassage soigné et emballage propre.",
+    services: ["Pressing express", "Repassage", "Retouche", "Paiement Mobile Money"],
+    horaires: [{ jours: "Lundi – Samedi", heures: "07:30 – 20:30" }],
+    telephone: "+225 05 05 21 40 12",
+    whatsapp: "2250505214012",
+    prix: "À partir de 500 FCFA / pièce",
+    avis: [{ auteur: "Yannick B.", date: "2026-09-08", note: 4, commentaire: "Rapide et soigné, tickets de dépôt systématiques." }],
+  },
+  {
+    slug: "garage-moderne-plateau",
+    nom: "Garage Moderne du Plateau",
+    secteur: "services",
+    sousType: "Garage automobile",
+    ville: "Abidjan",
+    commune: "Plateau",
+    quartier: "Plateau Sud",
+    adresse: "Avenue Delafosse, Plateau Sud",
+    coords: [5.313, -4.026],
+    pack: "basique",
+    scores: { hygiene: 81, accueil: 84, presentation: 82, gouvernance: 86 },
+    dateAudit: "2026-07-08",
+    prochainControle: "2027-01-08",
+    description: "Mécanique générale, diagnostic électronique et entretien rapide. Devis écrit avant chaque intervention.",
+    services: ["Diagnostic électronique", "Vidange", "Freinage", "Devis écrit", "Paiement Mobile Money"],
+    horaires: [{ jours: "Lundi – Samedi", heures: "08:00 – 18:00" }],
+    telephone: "+225 27 20 32 50 13",
+    whatsapp: "22527325013",
+    prix: "Devis gratuit, main d'œuvre à partir de 10 000 FCFA",
+    avis: [{ auteur: "Romuald T.", date: "2026-09-15", note: 4, commentaire: "Devis respecté, atelier propre, délais tenus." }],
+  },
+  {
+    slug: "groupe-scolaire-les-laureats",
+    nom: "Groupe Scolaire Les Lauréats",
+    secteur: "education",
+    sousType: "École privée maternelle et primaire",
+    ville: "Abidjan",
+    commune: "Cocody",
+    quartier: "Angré",
+    adresse: "Angré 7e tranche, Cocody",
+    coords: [5.389, -3.994],
+    pack: "premium",
+    visite3d: VISITE_DEMO,
+    aLaUne: true,
+    scores: { hygiene: 92, accueil: 90, presentation: 89, gouvernance: 93 },
+    dateAudit: "2026-09-01",
+    prochainControle: "2027-03-01",
+    description: "De la maternelle au CM2 : effectifs limités, cantine contrôlée, suivi individualisé et infirmerie.",
+    services: ["Cantine", "Transport scolaire", "Infirmerie", "Suivi en ligne des notes", "Cantine certifiée"],
+    horaires: [{ jours: "Lundi – Vendredi", heures: "07:00 – 17:00" }],
+    telephone: "+225 27 22 54 60 14",
+    whatsapp: "2252722546014",
+    prix: "Scolarité à partir de 150 000 FCFA / trimestre",
+    avis: [
+      { auteur: "Nathalie G.", date: "2026-10-03", note: 5, commentaire: "Classes aérées, enfants encadrés dès le portail." },
+      { auteur: "Souleymane C.", date: "2026-09-12", note: 5, commentaire: "Administration carrée, factures claires, personnel irréprochable." },
+    ],
+    awards: ["Meilleur établissement d'éducation 2025"],
+  },
+  {
+    slug: "institut-pro-plus-plateau",
+    nom: "Institut Pro+ du Plateau",
+    secteur: "education",
+    sousType: "Centre de formation professionnelle",
+    ville: "Abidjan",
+    commune: "Plateau",
+    quartier: "Plateau Centre",
+    adresse: "Avenue Noguès, Plateau",
+    coords: [5.324, -4.015],
+    pack: "basique",
+    scores: { hygiene: 82, accueil: 86, presentation: 85, gouvernance: 88 },
+    dateAudit: "2026-06-25",
+    prochainControle: "2026-12-25",
+    description: "Formations courtes : bureautique, comptabilité, anglais des affaires. Certificats reconnus et horaires du soir.",
+    services: ["Bureautique", "Comptabilité", "Anglais des affaires", "Horaires du soir", "Attestations"],
+    horaires: [{ jours: "Lundi – Samedi", heures: "08:00 – 20:00" }],
+    telephone: "+225 27 20 31 70 15",
+    whatsapp: "2252720317015",
+    prix: "Modules à partir de 40 000 FCFA",
+    avis: [{ auteur: "Franck A.", date: "2026-08-28", note: 4, commentaire: "Formateurs ponctuels, salles climatisées et propres." }],
+  },
+  {
+    slug: "ecole-bilingue-akwaba-yopougon",
+    nom: "École Bilingue Akwaba",
+    secteur: "education",
+    sousType: "École primaire bilingue",
+    ville: "Abidjan",
+    commune: "Yopougon",
+    quartier: "Siporex",
+    adresse: "Siporex, Yopougon",
+    coords: [5.333, -4.066],
+    pack: "basique",
+    scores: { hygiene: 85, accueil: 88, presentation: 84, gouvernance: 83 },
+    dateAudit: "2026-05-18",
+    prochainControle: "2026-11-18",
+    description: "Primaire bilingue français-anglais, classes de 25 élèves maximum, cour ombragée et cantine.",
+    services: ["Bilingue FR-EN", "Cantine", "Transport scolaire", "Activités sportives"],
+    horaires: [{ jours: "Lundi – Vendredi", heures: "07:00 – 16:30" }],
+    telephone: "+225 27 23 47 80 16",
+    whatsapp: "2252723478016",
+    prix: "Scolarité à partir de 85 000 FCFA / trimestre",
+    avis: [{ auteur: "Mariam F.", date: "2026-09-22", note: 4, commentaire: "Bon encadrement, locaux entretenus." }],
+  },
+  {
+    slug: "centre-commercial-le-lagon",
+    nom: "Centre Commercial Le Lagon",
+    secteur: "commerce",
+    sousType: "Centre commercial",
+    ville: "Abidjan",
+    commune: "Cocody",
+    quartier: "Riviera 3",
+    adresse: "Boulevard Mitterrand, Riviera 3, Cocody",
+    coords: [5.355, -3.955],
+    pack: "premium",
+    visite3d: VISITE_DEMO,
+    aLaUne: true,
+    scores: { hygiene: 89, accueil: 87, presentation: 88, gouvernance: 90 },
+    dateAudit: "2026-08-12",
+    prochainControle: "2027-02-12",
+    description: "60 boutiques, food court, cinéma et aire de jeux. Sanitaires propres, gardiennage visible et parking sécurisé.",
+    services: ["60 boutiques", "Food court", "Cinéma", "Aire de jeux", "Parking sécurisé", "PMR accessible"],
+    horaires: [{ jours: "Tous les jours", heures: "09:00 – 21:00" }],
+    telephone: "+225 27 22 44 90 17",
+    whatsapp: "2252722449017",
+    prix: "Entrée libre",
+    avis: [
+      { auteur: "Élodie N.", date: "2026-10-05", note: 5, commentaire: "Sanitaires impeccables, sécurité présente sans être oppressante." },
+      { auteur: "Hamed D.", date: "2026-09-19", note: 4, commentaire: "Très propre pour un centre commercial, climatisation efficace." },
+    ],
+    awards: ["Meilleur centre commercial 2025"],
+  },
+  {
+    slug: "galerie-du-plateau",
+    nom: "Galerie du Plateau",
+    secteur: "commerce",
+    sousType: "Galerie marchande",
+    ville: "Abidjan",
+    commune: "Plateau",
+    quartier: "Plateau Centre",
+    adresse: "Rue Gourgas, Plateau",
+    coords: [5.319, -4.019],
+    pack: "basique",
+    scores: { hygiene: 83, accueil: 81, presentation: 82, gouvernance: 85 },
+    dateAudit: "2026-06-10",
+    prochainControle: "2026-12-10",
+    description: "Galerie de boutiques au cœur du quartier des affaires : mode, artisanat et services aux entreprises.",
+    services: ["Boutiques", "Restauration rapide", "Parking"],
+    horaires: [{ jours: "Lundi – Samedi", heures: "08:30 – 19:30" }],
+    telephone: "+225 27 20 33 10 18",
+    whatsapp: "2252720331018",
+    prix: "Entrée libre",
+    avis: [{ auteur: "Serge O.", date: "2026-09-05", note: 4, commentaire: "Boutiques variées, couloirs propres." }],
+  },
+  {
+    slug: "marche-couvert-angre",
+    nom: "Marché Couvert d'Angré",
+    secteur: "commerce",
+    sousType: "Marché couvert",
+    ville: "Abidjan",
+    commune: "Cocody",
+    quartier: "Angré",
+    adresse: "Angré Mahou, Cocody",
+    coords: [5.401, -3.983],
+    pack: "basique",
+    scores: { hygiene: 82, accueil: 85, presentation: 80, gouvernance: 81 },
+    dateAudit: "2026-05-27",
+    prochainControle: "2026-11-27",
+    description: "Marché couvert modernisé : allées nettoyées chaque soir, étals numérotés et produits frais tracés.",
+    services: ["Produits frais", "Étals numérotés", "Toilettes publiques", "Paiement Mobile Money"],
+    horaires: [{ jours: "Tous les jours", heures: "06:00 – 19:00" }],
+    telephone: "+225 27 22 55 20 19",
+    whatsapp: "2252722552019",
+    prix: "Entrée libre",
+    avis: [{ auteur: "Awa S.", date: "2026-08-31", note: 5, commentaire: "Un marché propre comme on n'en voit pas souvent." }],
+  },
+  {
+    slug: "translagune-voyages",
+    nom: "TransLagune Voyages",
+    secteur: "transport",
+    sousType: "Compagnie de transport interurbain",
+    ville: "Abidjan",
+    commune: "Plateau",
+    quartier: "Adjamé Gare Routière",
+    adresse: "Gare routière d'Adjamé, Hall B",
+    coords: [5.365, -4.033],
+    pack: "premium",
+    aLaUne: true,
+    scores: { hygiene: 87, accueil: 89, presentation: 88, gouvernance: 92 },
+    dateAudit: "2026-08-30",
+    prochainControle: "2027-02-28",
+    description: "Liaisons Abidjan–Yamoussoukro–Bouaké en bus climatisés. Embarquement à l'heure, billets nominatifs et bagages étiquetés.",
+    services: ["Climatisation", "Billets en ligne", "Bagages étiquetés", "Wi-Fi à bord", "Paiement Mobile Money"],
+    horaires: [
+      { jours: "Départs", heures: "06:30 · 09:00 · 13:00 · 16:00" },
+      { jours: "Guichet", heures: "05:30 – 19:00, 7 j/7" },
+    ],
+    telephone: "+225 27 20 38 40 20",
+    whatsapp: "2252720384020",
+    prix: "Abidjan–Yamoussoukro : 5 000 FCFA",
+    avis: [
+      { auteur: "Olivier B.", date: "2026-10-02", note: 5, commentaire: "Départ pile à l'heure, bus propre, conducteur courtois." },
+      { auteur: "Marie-Claire K.", date: "2026-09-16", note: 4, commentaire: "Guichet organisé, billets nominatifs rassurants." },
+    ],
+  },
+  {
+    slug: "navette-aeroport-express",
+    nom: "Navette Aéroport Express",
+    secteur: "transport",
+    sousType: "Navette aéroportuaire",
+    ville: "Abidjan",
+    commune: "Port-Bouët",
+    quartier: "Aéroport FHB",
+    adresse: "Aéroport Félix Houphouët-Boigny, zone navettes",
+    coords: [5.255, -3.928],
+    pack: "basique",
+    scores: { hygiene: 84, accueil: 86, presentation: 85, gouvernance: 84 },
+    dateAudit: "2026-07-22",
+    prochainControle: "2027-01-22",
+    description: "Navettes climatisées entre l'aéroport et les communes. Chauffeurs identifiés et tarifs affichés.",
+    services: ["Navette partagée", "Climatisation", "Chauffeurs identifiés", "Paiement Mobile Money"],
+    horaires: [{ jours: "Tous les jours", heures: "05:00 – 23:00" }],
+    telephone: "+225 07 07 62 30 21",
+    whatsapp: "2250707623021",
+    prix: "À partir de 3 000 FCFA / personne",
+    avis: [{ auteur: "Brice E.", date: "2026-09-10", note: 4, commentaire: "Ponctuel, tarif affiché respecté." }],
+  },
+  {
+    slug: "woroworo-confort-yopougon",
+    nom: "Wôrô-wôrô Confort",
+    secteur: "transport",
+    sousType: "Taxis collectifs de commune",
+    ville: "Abidjan",
+    commune: "Yopougon",
+    quartier: "Boulevard Principal",
+    adresse: "Station Selmer, Yopougon",
+    coords: [5.336, -4.081],
+    pack: "basique",
+    scores: { hygiene: 81, accueil: 83, presentation: 84, gouvernance: 82 },
+    dateAudit: "2026-06-05",
+    prochainControle: "2026-12-05",
+    description: "Flotte de wôrô-wôrô entretenus : sièges propres, chauffeurs en tenue et tarifs de commune affichés.",
+    services: ["Tarifs affichés", "Véhicules contrôlés", "Chauffeurs en tenue"],
+    horaires: [{ jours: "Tous les jours", heures: "05:00 – 22:00" }],
+    telephone: "+225 05 05 43 10 22",
+    whatsapp: "2250505431022",
+    prix: "Courses de 200 à 500 FCFA",
+    avis: [{ auteur: "Djeneba L.", date: "2026-09-27", note: 4, commentaire: "Taxis propres et chauffeurs polis, on sent le contrôle qualité." }],
+  },
+];
+
+export const getEtablissement = (slug: string) => ETABLISSEMENTS.find((e) => e.slug === slug);
+
+export const VILLES = [...new Set(ETABLISSEMENTS.map((e) => e.ville))].sort();
+
+export const QUARTIERS_PAR_VILLE: Record<string, string[]> = Object.fromEntries(
+  VILLES.map((v) => [
+    v,
+    [...new Set(ETABLISSEMENTS.filter((e) => e.ville === v).flatMap((e) => [e.commune, e.quartier]))].sort((a, b) => a.localeCompare(b, "fr")),
+  ]),
+);
+
+export type Tri = "note" | "avis" | "nom";
+
+export interface Filtres {
+  secteur?: Secteur;
+  ville?: string;
+  quartier?: string;
+  noteMin?: number;
+  reservation?: boolean;
+  tri: Tri;
+}
+
+type SearchParams = Record<string, string | string[] | undefined>;
+const premier = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() || undefined;
+
+export function parseFiltres(sp: SearchParams): Filtres {
+  const secteur = premier(sp.secteur);
+  const tri = premier(sp.tri);
+  const noteMin = Number(premier(sp.note));
+  return {
+    secteur: SECTEUR_LIST.includes(secteur as Secteur) ? (secteur as Secteur) : undefined,
+    ville: premier(sp.ville),
+    quartier: premier(sp.quartier),
+    noteMin: noteMin > SITE.seuil ? noteMin : undefined,
+    reservation: premier(sp.reservation) === "1" || undefined,
+    tri: tri === "avis" || tri === "nom" ? tri : "note",
+  };
+}
+
+export function filtresVersQuery(f: Partial<Filtres>) {
+  const q = new URLSearchParams();
+  if (f.secteur) q.set("secteur", f.secteur);
+  if (f.ville) q.set("ville", f.ville);
+  if (f.quartier) q.set("quartier", f.quartier);
+  if (f.noteMin) q.set("note", String(f.noteMin));
+  if (f.reservation) q.set("reservation", "1");
+  if (f.tri && f.tri !== "note") q.set("tri", f.tri);
+  return q.toString();
+}
+
+export function rechercher(f: Filtres) {
+  const quartier = f.quartier && normaliser(f.quartier);
+  const resultats = ETABLISSEMENTS.filter(
+    (e) =>
+      (!f.secteur || e.secteur === f.secteur) &&
+      (!f.ville || e.ville === f.ville) &&
+      (!quartier || normaliser(e.quartier).includes(quartier) || normaliser(e.commune).includes(quartier)) &&
+      (!f.noteMin || scoreGlobal(e.scores) >= f.noteMin) &&
+      (!f.reservation || e.pack === "premium"),
+  );
+  const tris: Record<Tri, (a: Etablissement, b: Etablissement) => number> = {
+    note: (a, b) => scoreGlobal(b.scores) - scoreGlobal(a.scores),
+    avis: (a, b) => noteMoyenne(b.avis) - noteMoyenne(a.avis) || b.avis.length - a.avis.length,
+    nom: (a, b) => a.nom.localeCompare(b.nom, "fr"),
+  };
+  return resultats.sort(tris[f.tri]);
+}
+
+export const AWARDS = {
+  annee: 2025,
+  laureats: [
+    { categorie: "Meilleur hôtel", slug: "hotel-lagune-bleue" },
+    { categorie: "Meilleur restaurant", slug: "saveurs-d-akwaba" },
+    { categorie: "Meilleur établissement de santé", slug: "clinique-les-palmiers" },
+    { categorie: "Prix de l'accueil", slug: "hotel-bassam-plage" },
+  ],
+};
+
+export const BROCHURES = [
+  { titre: "Guide de l'usager", description: "Comprendre le label, lire une note et laisser un avis vérifié.", pages: 8, fichier: null },
+  { titre: "Brochure établissements", description: "Les deux parcours de certification, les packs et leurs avantages.", pages: 12, fichier: null },
+  { titre: "Référentiel d'audit (version publique)", description: "Les critères, sous-critères et pondérations par secteur.", pages: 20, fichier: null },
+] as { titre: string; description: string; pages: number; fichier: string | null }[];

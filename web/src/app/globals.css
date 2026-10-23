@@ -1,0 +1,241 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1e3a8a;
+  --color-primary-dark: #172e6e;
+  --color-primary-deep: #16296b;
+  --color-primary-mid: #2d4db0;
+  --color-primary-soft: #e8edf8;
+  --color-success: #16a34a;
+  --color-success-dark: #12813b;
+  --color-success-bright: #22c55e;
+  --color-success-soft: #e7f6ec;
+  --color-or: #d4a017;
+  --color-surface: #f5f7fb;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-line: #e2e8f0;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.06);
+  --shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.06), 0 12px 32px rgb(15 23 42 / 0.1);
+  --shadow-flottant: 0 8px 24px rgb(15 23 42 / 0.12);
+  --shadow-panneau: 0 -8px 40px rgb(15 23 42 / 0.14);
+  --shadow-survol: 0 16px 48px rgb(30 58 138 / 0.18);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-poppins), var(--font-inter), ui-sans-serif, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility verre {
+  background: rgb(255 255 255 / 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgb(255 255 255 / 0.55);
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  }
+  .btn-hero {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-3.5 font-display text-base font-bold text-white transition active:scale-[0.97];
+    background-image: linear-gradient(135deg, #1e3a8a, #2d4db0 45%, #16a34a);
+    box-shadow: 0 16px 48px rgb(30 58 138 / 0.18);
+  }
+  .badge-brille {
+    position: relative;
+    overflow: hidden;
+  }
+  .badge-brille::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -60%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.75), transparent);
+    animation: brille 6s infinite;
+  }
+  .squelette {
+    background: linear-gradient(100deg, var(--color-surface) 40%, #ffffff 50%, var(--color-surface) 60%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+  }
+  .fav-pop {
+    animation: pop 0.35s ease;
+  }
+}
+
+@keyframes brille {
+  0%,
+  84% {
+    left: -60%;
+  }
+  100% {
+    left: 130%;
+  }
+}
+@keyframes pulse-pin {
+  from {
+    transform: scale(0.7);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+@keyframes monte {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes derive {
+  to {
+    transform: translate(6%, 4%) rotate(4deg);
+  }
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+  }
+  55% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes zoom-ciel {
+  from {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes coche {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes splash-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+/* Filet de sécurité : le splash s'efface seul après 2,6 s même si le JS ne s'exécute pas. */
+.splash-ecran {
+  animation: splash-out 0.5s ease 2.6s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-brille::after,
+  .map-pin::after {
+    animation: none;
+    content: none;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-dark;
+  }
+  .btn-success {
+    @apply bg-success text-white hover:bg-success-dark;
+  }
+  .btn-outline {
+    @apply border border-line bg-white text-primary hover:border-primary hover:bg-primary-soft;
+  }
+  .btn-white {
+    @apply bg-white text-primary hover:bg-primary-soft;
+  }
+  .card {
+    @apply rounded-2xl border border-line bg-white shadow-card;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-3 text-base text-ink placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none sm:text-sm;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-semibold tracking-wide text-muted uppercase;
+  }
+  .h-section {
+    @apply font-display text-2xl font-semibold text-primary sm:text-3xl;
+  }
+}
+
+.map-pin {
+  position: relative;
+  display: flex;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  border-radius: 9999px;
+  background: var(--color-success);
+  color: #ffffff;
+  font: 700 12px/1 var(--font-inter), sans-serif;
+  box-shadow: 0 4px 12px rgb(15 23 42 / 0.25);
+  transition: transform 0.15s, background 0.15s;
+}
+
+.map-pin::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 9999px;
+  border: 2px solid var(--color-success-bright);
+  animation: pulse-pin 2.4s ease-out infinite;
+  pointer-events: none;
+}
+
+.map-pin.is-active {
+  background: var(--color-primary);
+  transform: scale(1.15);
+}
+
+.leaflet-container {
+  font-family: var(--font-inter), sans-serif;
+}
