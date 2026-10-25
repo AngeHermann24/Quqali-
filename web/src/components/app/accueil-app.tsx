@@ -10,6 +10,7 @@ import { etatPublic, type Gestion } from "@/lib/admin";
 import { CLES } from "@/lib/espace";
 import { normaliser } from "@/lib/format";
 import { useStockage } from "@/lib/stockage";
+import { cn } from "@/lib/site";
 import { PhotoPlaceholder, SECTEUR_ICONS } from "@/components/ui";
 import { BadgeCertifie, SECTEUR_COULEURS, SearchBar, SectorTile } from "@/components/app/ui-app";
 import { BoutonFavori } from "@/components/app/favoris";
@@ -140,15 +141,15 @@ export function AccueilApp({ etablissements }: { etablissements: Etablissement[]
       </div>
 
       {/* Raccourcis */}
-      <div className="mt-6 grid grid-cols-3 gap-3 px-5">
+      <div className="mt-5 grid grid-cols-3 px-5">
         {RACCOURCIS.map(({ href, label, Icon }) => (
           <Link
             key={label}
             href={href}
             onClick={label === "Près de moi" ? (e) => (e.preventDefault(), localiser()) : undefined}
-            className="flex flex-col items-center gap-1.5 rounded-2xl bg-surface px-2 py-3.5 text-center text-[11px] font-bold text-ink transition active:scale-95"
+            className="flex flex-col items-center gap-1.5 py-1 text-center text-[11px] font-bold text-ink transition active:scale-95"
           >
-            <Icon className="size-5 text-or" aria-hidden />
+            <Icon className={cn("size-5", label === "Près de moi" ? "text-primary" : "text-or")} aria-hidden />
             {label}
           </Link>
         ))}
@@ -174,19 +175,31 @@ export function AccueilApp({ etablissements }: { etablissements: Etablissement[]
 function CarteUne({ e, position }: { e: Etablissement; position: [number, number] | null }) {
   const note = noteMoyenne(e.avis);
   const distance = position ? distanceKm(position, e.coords) : null;
+  const score = Math.round(scoreGlobal(e.scores));
   return (
     <Link href={`/etablissements/${e.slug}`} className="block overflow-hidden rounded-3xl border border-line bg-white shadow-card transition active:scale-[0.99]">
-      <div className="relative h-40">
+      <div className="relative h-44">
         <PhotoPlaceholder secteur={e.secteur} className="absolute inset-0" />
-        <BadgeCertifie className="absolute top-3 left-3" />
-        <BoutonFavori slug={e.slug} className="absolute top-3 right-3" />
+        <BadgeCertifie className="absolute top-3 right-3" />
+        <span
+          className="absolute -bottom-5 left-4 grid size-12 place-items-center rounded-full shadow-flottant"
+          style={{ background: `conic-gradient(#16A34A ${score * 3.6}deg, #E5E9F2 0deg)` }}
+          aria-label={`Score ${score} %`}
+        >
+          <span className="grid size-9 place-items-center rounded-full bg-white font-display text-[11px] font-extrabold text-ink">{score}%</span>
+        </span>
       </div>
-      <div className="p-4">
-        <p className="font-display font-bold text-ink">{e.nom}</p>
-        <p className="mt-0.5 text-xs text-muted">
-          {e.sousType} · {e.commune}
-        </p>
-        <div className="mt-2 flex items-center gap-3 text-sm">
+      <div className="p-4 pt-7">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate font-display font-bold text-ink">{e.nom}</p>
+            <p className="mt-0.5 text-xs text-muted">
+              {e.sousType} · {e.commune}
+            </p>
+          </div>
+          <BoutonFavori slug={e.slug} plat className="shrink-0" />
+        </div>
+        <div className="mt-2 flex items-center justify-between text-sm">
           <span className="flex items-center gap-1 font-bold text-ink">
             <Star className="size-4 fill-or text-or" aria-hidden />
             {note > 0 ? note.toFixed(1).replace(".", ",") : "—"}

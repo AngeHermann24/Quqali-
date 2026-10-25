@@ -15,7 +15,7 @@ export function useFavoris() {
   return { favoris: favoris ?? [], estFavori: (s: string) => (favoris ?? []).includes(s), toggle, charge: favoris !== undefined };
 }
 
-export function BoutonFavori({ slug, className }: { slug: string; className?: string }) {
+export function BoutonFavori({ slug, className, plat = false }: { slug: string; className?: string; plat?: boolean }) {
   const { estFavori, toggle, charge } = useFavoris();
   const [pop, setPop] = useState(0);
   const favori = estFavori(slug);
@@ -32,8 +32,9 @@ export function BoutonFavori({ slug, className }: { slug: string; className?: st
         setPop((p) => p + 1);
       }}
       className={cn(
-        "verre grid size-9 place-items-center rounded-full shadow-card transition active:scale-90",
-        favori ? "text-red-500" : "text-ink/70",
+        "grid size-9 place-items-center rounded-full transition active:scale-90",
+        plat ? "text-muted" : "verre shadow-card",
+        favori ? "text-red-500" : plat ? "text-muted" : "text-ink/70",
         className,
       )}
     >

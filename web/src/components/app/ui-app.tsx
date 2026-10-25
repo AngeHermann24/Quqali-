@@ -88,23 +88,19 @@ export function RingScore({ valeur, label, taille = 64, couleur = "#16A34A", epa
   );
 }
 
-/* ---------- Tuile secteur colorée (accueil / lancement) ---------- */
-export function SectorTile({ secteur, rond = false, onClick }: { secteur: Secteur; rond?: boolean; onClick?: () => void }) {
+/* ---------- Tuile secteur colorée (accueil : icône + label dans la couleur) ---------- */
+export function SectorTile({ secteur, onClick }: { secteur: Secteur; onClick?: () => void }) {
   const Icon = SECTEUR_ICONS[secteur];
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={SECTEURS[secteur].label}
-      className={cn("flex flex-col items-center gap-2 transition active:scale-95", rond ? "w-20" : "w-full")}
+      className="flex h-26 w-full flex-col items-center justify-center gap-2 rounded-3xl text-white shadow-flottant transition active:scale-95"
+      style={{ background: SECTEUR_COULEURS[secteur] }}
     >
-      <span
-        className={cn("grid place-items-center text-white shadow-flottant", rond ? "size-20 rounded-full" : "h-20 w-full rounded-3xl")}
-        style={{ background: SECTEUR_COULEURS[secteur] }}
-      >
-        <Icon className={rond ? "size-8" : "size-9"} aria-hidden />
-      </span>
-      <span className="text-xs font-bold text-ink">{SECTEURS[secteur].label}</span>
+      <Icon className="size-8" strokeWidth={1.8} aria-hidden />
+      <span className="text-xs font-bold">{SECTEURS[secteur].label}</span>
     </button>
   );
 }
