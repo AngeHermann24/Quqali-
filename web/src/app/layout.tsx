@@ -3,6 +3,7 @@ import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { NavBas } from "@/components/app/nav-bas";
+import { CadreApp } from "@/components/app/cadre-app";
 import { SITE } from "@/lib/site";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -20,7 +21,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="fr" data-scroll-behavior="smooth" className={`${inter.variable} ${poppins.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans" suppressHydrationWarning>
         <SiteHeader />
-        <main className="flex-1 pb-24 lg:pb-0">{children}</main>
+        <main className="flex-1 pb-20 lg:pb-0">
+          <CadreApp>{children}</CadreApp>
+        </main>
         <NavBas />
       </body>
     </html>

@@ -1,20 +1,33 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: #1e3a8a;
   --color-primary-dark: #172e6e;
   --color-primary-deep: #16296b;
   --color-primary-mid: #2d4db0;
   --color-primary-soft: #e8edf8;
+  --color-bleu: #1d4ed8;
   --color-success: #16a34a;
   --color-success-dark: #12813b;
   --color-success-bright: #22c55e;
   --color-success-soft: #e7f6ec;
   --color-or: #d4a017;
+  --color-danger: #ef4444;
+  --color-nuit: #0b1b3f;
   --color-surface: #f5f7fb;
   --color-ink: #0f172a;
   --color-muted: #64748b;
-  --color-line: #e2e8f0;
+  --color-line: #e5e9f2;
+
+  --color-secteur-restauration: #16a34a;
+  --color-secteur-hotellerie: #2563eb;
+  --color-secteur-sante: #14b8a6;
+  --color-secteur-services: #7c3aed;
+  --color-secteur-education: #f59e0b;
+  --color-secteur-commerce: #db2777;
+  --color-secteur-transport: #0284c7;
 
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.06);
   --shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.06), 0 12px 32px rgb(15 23 42 / 0.1);
@@ -35,6 +48,20 @@ html {
 body {
   background: #ffffff;
   color: var(--color-ink);
+}
+
+/* Cadre téléphone sur ordinateur : l'app usager tient dans 430 px centrés. */
+@media (min-width: 1024px) {
+  .cadre-app {
+    max-width: 430px;
+    margin-inline: auto;
+    border-inline: 1px solid var(--color-line);
+    box-shadow: 0 0 60px rgb(15 23 42 / 0.12);
+    min-height: 100dvh;
+  }
+  body:has(.cadre-app) {
+    background: var(--color-surface);
+  }
 }
 
 @utility no-scrollbar {

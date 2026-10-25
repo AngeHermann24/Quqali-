@@ -2,21 +2,19 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type FormEvent } from "react";
-import { CalendarCheck, Compass, Search, ShieldCheck, Trophy, X } from "lucide-react";
-import { type Etablissement, SECTEURS, SECTEUR_LIST, type Secteur, scoreGlobal } from "@/lib/data";
+import { useMemo, useState } from "react";
+import { Bell, ChevronDown, ChevronRight, MapPin, Navigation, Star, Trophy, User } from "lucide-react";
+import { type Etablissement, SECTEURS, type Secteur, noteMoyenne, scoreGlobal } from "@/lib/data";
 import { type CompteClient } from "@/lib/avis";
 import { etatPublic, type Gestion } from "@/lib/admin";
 import { CLES } from "@/lib/espace";
 import { normaliser } from "@/lib/format";
 import { useStockage } from "@/lib/stockage";
-import { cn } from "@/lib/site";
-import { Carte } from "@/components/map";
-import type { MapPoint } from "@/components/map-view";
-import { BottomSheet } from "@/components/app/bottom-sheet";
-import { Splash } from "@/components/app/splash";
-import { BoutonFavori } from "@/components/app/favoris";
 import { PhotoPlaceholder, SECTEUR_ICONS } from "@/components/ui";
+import { BadgeCertifie, SECTEUR_COULEURS, SearchBar, SectorTile } from "@/components/app/ui-app";
+import { BoutonFavori } from "@/components/app/favoris";
+import { Lancement } from "@/components/app/lancement";
+import { useNotifications } from "@/components/app/notifications";
 
 const MOTS_SECTEUR: [RegExp, Secteur][] = [
   [/hotel|auberge|dormir|r.sidence|lodge/, "hotellerie"],
@@ -28,57 +26,38 @@ const MOTS_SECTEUR: [RegExp, Secteur][] = [
   [/bus|transport|navette|taxi|voyage|billet/, "transport"],
 ];
 
-const TUILES = [
-  { href: "/etablissements", label: "Explorer", Icon: Compass },
-  { href: "/etablissements?reservation=1", label: "Réservable", Icon: CalendarCheck },
+const SECTEURS_PRINCIPAUX: Secteur[] = ["restauration", "hotellerie", "sante"];
+const SECTEURS_AUTRES: Secteur[] = ["services", "education", "commerce", "transport"];
+
+const RACCOURCIS = [
+  { href: "/etablissements?tri=avis", label: "Les mieux notés", Icon: Star },
+  { href: "/etablissements", label: "Près de moi", Icon: Navigation },
   { href: "/awards", label: "Awards", Icon: Trophy },
-  { href: "/methodologie", label: "La méthode", Icon: ShieldCheck },
 ];
 
-export function AccueilApp({
-  etablissements,
-  laureats,
-  annee,
-}: {
-  etablissements: Etablissement[];
-  laureats: { categorie: string; nom: string; slug: string }[];
-  annee: number;
-}) {
+export function AccueilApp({ etablissements }: { etablissements: Etablissement[]; laureats?: { categorie: string; nom: string; slug: string }[]; annee?: number }) {
   const router = useRouter();
   const [compte] = useStockage<CompteClient>(CLES.compte);
   const [gestion] = useStockage<Gestion>(CLES.gestion);
+  const { items: notifs } = useNotifications(compte);
   const [q, setQ] = useState("");
-  const [secteur, setSecteur] = useState<Secteur | null>(null);
-  const [selection, setSelection] = useState<string | null>(null);
+  const [position, setPosition] = useState<[number, number] | null>(null);
 
   const suspendus = useMemo(() => new Set(Object.keys(gestion ?? {}).filter((s) => etatPublic(gestion?.[s]) === "suspendu")), [gestion]);
-
-  const visibles = useMemo(
-    () => etablissements.filter((e) => !suspendus.has(e.slug) && (!secteur || e.secteur === secteur)),
-    [etablissements, suspendus, secteur],
-  );
-  const pointsFiltres = useMemo<MapPoint[]>(
-    () =>
-      visibles.map((e) => ({
-        slug: e.slug,
-        nom: e.nom,
-        coords: e.coords,
-        score: scoreGlobal(e.scores),
-        sousTitre: `${SECTEURS[e.secteur].label} · ${e.commune}`,
-        secteur: e.secteur,
-      })),
-    [visibles],
-  );
   const aLaUne = useMemo(
     () => etablissements.filter((e) => e.aLaUne && !suspendus.has(e.slug)).sort((a, b) => scoreGlobal(b.scores) - scoreGlobal(a.scores)),
     [etablissements, suspendus],
   );
 
-  const selectionne = selection ? (etablissements.find((e) => e.slug === selection) ?? null) : null;
-  const prenom = compte?.nom.trim().split(/\s+/)[0];
+  const initiales = compte?.nom
+    .trim()
+    .split(/\s+/)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
-  const chercher = (e: FormEvent) => {
-    e.preventDefault();
+  const chercher = () => {
     const params = new URLSearchParams();
     let texte = normaliser(q.trim());
     for (const [re, s] of MOTS_SECTEUR) {
@@ -88,190 +67,146 @@ export function AccueilApp({
         break;
       }
     }
-    if (!params.get("secteur") && secteur) params.set("secteur", secteur);
     if (texte) params.set("quartier", q.trim());
     const qs = params.toString();
     router.push(`/etablissements${qs ? `?${qs}` : ""}`);
   };
 
-  return (
-    <div className="relative h-dvh overflow-hidden lg:h-[calc(100dvh-4rem)]">
-      <Splash />
+  const localiser = () => {
+    navigator.geolocation?.getCurrentPosition(
+      (pos) => {
+        setPosition([pos.coords.latitude, pos.coords.longitude]);
+        router.push("/etablissements");
+      },
+      () => router.push("/etablissements"),
+      { timeout: 4000 },
+    );
+  };
 
-      {/* Carte plein écran */}
-      <div className="absolute inset-0">
-        <Carte
-          points={pointsFiltres}
-          activeSlug={selection}
-          onSelect={(slug) => setSelection(slug)}
-        />
+  return (
+    <div className="pb-4">
+      <Lancement />
+
+      {/* En-tête : logo, notifications, avatar */}
+      <header className="flex items-center justify-between px-5 pt-5">
+        <span className="font-display text-xl font-extrabold text-ink">
+          Qualité<span className="text-success">+</span>
+        </span>
+        <div className="flex items-center gap-3">
+          <Link href="/notifications" aria-label="Notifications" className="relative grid size-10 place-items-center rounded-full border border-line bg-white text-ink transition active:scale-95">
+            <Bell className="size-5" aria-hidden />
+            {notifs.some((n) => !n.lue) && <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-danger" aria-hidden />}
+          </Link>
+          <Link href="/profil" aria-label="Mon profil" className="grid size-10 place-items-center rounded-full bg-primary font-bold text-white transition active:scale-95">
+            {initiales ? <span className="text-sm">{initiales}</span> : <User className="size-5" aria-hidden />}
+          </Link>
+        </div>
+      </header>
+
+      {/* Localisation */}
+      <button type="button" className="mt-3 flex items-center gap-1.5 px-5 text-sm font-semibold text-ink">
+        <MapPin className="size-4 text-primary" aria-hidden />
+        Abidjan
+        <ChevronDown className="size-4 text-muted" aria-hidden />
+      </button>
+
+      <div className="mt-4 px-5">
+        <SearchBar valeur={q} onChange={setQ} onSubmit={chercher} />
       </div>
 
-      {/* Barre de recherche flottante */}
-      <form onSubmit={chercher} className="verre absolute inset-x-4 top-4 z-40 mx-auto flex max-w-lg items-center gap-3 rounded-full py-1.5 pr-1.5 pl-5 shadow-flottant" role="search">
-        <Search className="size-5 shrink-0 text-primary" aria-hidden />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Où allez-vous aujourd'hui ?"
-          aria-label="Rechercher un quartier ou un secteur"
-          className="min-w-0 flex-1 bg-transparent text-[15px] font-medium text-ink outline-none placeholder:text-muted"
-        />
-        <button type="submit" className="btn-hero px-5 py-2.5 text-sm">
-          Aller
-        </button>
-      </form>
-
-      {/* Puces secteur */}
-      <div className="no-scrollbar absolute inset-x-0 top-[76px] z-40 flex gap-2 overflow-x-auto px-4">
-        {SECTEUR_LIST.map((s) => {
+      {/* Tuiles secteurs */}
+      <div className="mt-6 grid grid-cols-3 gap-3 px-5">
+        {SECTEURS_PRINCIPAUX.map((s) => (
+          <SectorTile key={s} secteur={s} onClick={() => router.push(`/etablissements?secteur=${s}`)} />
+        ))}
+      </div>
+      <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto px-5">
+        {SECTEURS_AUTRES.map((s) => {
           const Icon = SECTEUR_ICONS[s];
-          const on = secteur === s;
           return (
             <button
               key={s}
               type="button"
-              onClick={() => setSecteur(on ? null : s)}
-              className={cn(
-                "flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold shadow-flottant transition active:scale-95",
-                on ? "text-white [background:linear-gradient(135deg,#1E3A8A,#2D4DB0_45%,#16A34A)]" : "verre text-ink",
-              )}
+              onClick={() => router.push(`/etablissements?secteur=${s}`)}
+              className="flex shrink-0 items-center gap-2 rounded-2xl border border-line bg-white px-3.5 py-2.5 text-sm font-semibold text-ink shadow-card transition active:scale-95"
             >
-              <Icon className="size-4" aria-hidden />
+              <span className="grid size-7 place-items-center rounded-lg text-white" style={{ background: SECTEUR_COULEURS[s] }}>
+                <Icon className="size-4" aria-hidden />
+              </span>
               {SECTEURS[s].label}
             </button>
           );
         })}
       </div>
 
-      {/* Mini-fiche de l'établissement sélectionné sur la carte */}
-      {selectionne && (
-        <div className="verre absolute inset-x-4 bottom-[46%] z-40 mx-auto flex max-w-md items-center gap-3 rounded-3xl p-3 shadow-flottant sm:bottom-auto sm:top-32">
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl">
-            <PhotoPlaceholder secteur={selectionne.secteur} className="absolute inset-0" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-display font-bold text-ink">{selectionne.nom}</p>
-            <p className="truncate text-xs text-muted">
-              {SECTEURS[selectionne.secteur].label} · {selectionne.commune}
-            </p>
-            <p className="mt-0.5 text-xs font-bold text-success">{scoreGlobal(selectionne.scores)} % certifié</p>
-          </div>
-          <Link href={`/etablissements/${selectionne.slug}`} className="btn-hero shrink-0 px-4 py-2.5 text-xs">
-            Voir
-          </Link>
-          <button
-            type="button"
-            aria-label="Fermer"
-            onClick={() => setSelection(null)}
-            className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-white text-muted shadow-card"
+      {/* Raccourcis */}
+      <div className="mt-6 grid grid-cols-3 gap-3 px-5">
+        {RACCOURCIS.map(({ href, label, Icon }) => (
+          <Link
+            key={label}
+            href={href}
+            onClick={label === "Près de moi" ? (e) => (e.preventDefault(), localiser()) : undefined}
+            className="flex flex-col items-center gap-1.5 rounded-2xl bg-surface px-2 py-3.5 text-center text-[11px] font-bold text-ink transition active:scale-95"
           >
-            <X className="size-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Panneau du bas */}
-      <BottomSheet>
-        <p className="font-display text-xl font-extrabold text-ink">
-          {prenom ? (
-            <>
-              Bonjour <span className="text-success">{prenom}</span>,
-            </>
-          ) : (
-            "Bonjour,"
-          )}
-        </p>
-        <p className="text-sm text-muted">que cherchez-vous ?</p>
-
-        <div className="mt-4 grid grid-cols-4 gap-2.5">
-          {TUILES.map(({ href, label, Icon }) => (
-            <Link
-              key={href + label}
-              href={href}
-              className="rounded-2xl bg-surface px-1 py-3 text-center text-[11px] font-bold text-ink transition active:scale-95"
-            >
-              <span className="mx-auto mb-1.5 grid size-9 place-items-center rounded-xl bg-white text-primary shadow-card">
-                <Icon className="size-4.5" aria-hidden />
-              </span>
-              {label}
-            </Link>
-          ))}
-        </div>
-
-        <p className="mt-6 font-display font-bold text-ink">Les mieux notés près de vous</p>
-        <div className="no-scrollbar -mx-5 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1">
-          {aLaUne.map((e) => (
-            <Link
-              key={e.slug}
-              href={`/etablissements/${e.slug}`}
-              className="w-[64%] shrink-0 snap-start overflow-hidden rounded-3xl border border-line bg-white shadow-card transition active:scale-[0.98] sm:w-56"
-            >
-              <div className="relative h-24">
-                <PhotoPlaceholder secteur={e.secteur} className="absolute inset-0" />
-                <span className="badge-brille absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-success px-2.5 py-1 text-[10px] font-bold text-white">
-                  Certifié
-                </span>
-                <BoutonFavori slug={e.slug} className="absolute top-2 right-2" />
-              </div>
-              <div className="p-3">
-                <p className="truncate font-display text-sm font-bold text-ink">{e.nom}</p>
-                <p className="truncate text-xs text-muted">
-                  {SECTEURS[e.secteur].label} · {e.commune}
-                </p>
-                <p className="mt-1.5 flex items-center justify-between text-xs">
-                  <span className="font-bold text-success">● {scoreGlobal(e.scores)} %</span>
-                  <span className="text-muted">{e.avis.length} avis</span>
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* Awards */}
-        <Link
-          href="/awards"
-          className="mt-6 block overflow-hidden rounded-3xl p-5 text-white shadow-survol [background:linear-gradient(135deg,#16296B,#1E3A8A_55%,#14532D)]"
-        >
-          <p className="flex items-center gap-2 font-display text-sm font-bold text-or">
-            <Trophy className="size-4" aria-hidden /> Awards {annee}
-          </p>
-          <p className="mt-1 font-display text-lg font-extrabold">Le palmarès des meilleurs établissements</p>
-          <ul className="mt-3 space-y-1.5">
-            {laureats.slice(0, 3).map((l) => (
-              <li key={l.categorie} className="flex items-center justify-between gap-3 rounded-xl bg-white/10 px-3 py-2 text-sm">
-                <span className="text-white/75">{l.categorie}</span>
-                <span className="truncate font-bold">{l.nom}</span>
-              </li>
-            ))}
-          </ul>
-          <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-success-bright">
-            Voir le palmarès complet →
-          </span>
-        </Link>
-
-        {/* Comment ça marche — condensé */}
-        <div className="mt-6 rounded-3xl bg-surface p-5">
-          <p className="font-display font-bold text-ink">Un label qui se mérite</p>
-          <ol className="mt-3 space-y-2.5 text-sm text-muted">
-            <li className="flex gap-2.5">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-white">1</span>
-              Audit sur place par un agent indépendant
-            </li>
-            <li className="flex gap-2.5">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-white">2</span>
-              Publié seulement si la note atteint 80 %
-            </li>
-            <li className="flex gap-2.5">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-white">3</span>
-              Contrôles réguliers — le badge peut être retiré
-            </li>
-          </ol>
-          <Link href="/methodologie" className="mt-3 inline-block text-sm font-bold text-primary">
-            Notre méthodologie →
+            <Icon className="size-5 text-or" aria-hidden />
+            {label}
           </Link>
-        </div>
-      </BottomSheet>
+        ))}
+      </div>
+
+      {/* Établissements à la une */}
+      <div className="mt-7 flex items-center justify-between px-5">
+        <h2 className="font-display text-base font-bold text-ink">Établissements à la une</h2>
+        <Link href="/etablissements" className="flex items-center gap-0.5 text-sm font-bold text-bleu">
+          Voir tout <ChevronRight className="size-4" aria-hidden />
+        </Link>
+      </div>
+
+      <div className="mt-3 space-y-4 px-5">
+        {aLaUne.slice(0, 6).map((e) => (
+          <CarteUne key={e.slug} e={e} position={position} />
+        ))}
+      </div>
     </div>
   );
+}
+
+function CarteUne({ e, position }: { e: Etablissement; position: [number, number] | null }) {
+  const note = noteMoyenne(e.avis);
+  const distance = position ? distanceKm(position, e.coords) : null;
+  return (
+    <Link href={`/etablissements/${e.slug}`} className="block overflow-hidden rounded-3xl border border-line bg-white shadow-card transition active:scale-[0.99]">
+      <div className="relative h-40">
+        <PhotoPlaceholder secteur={e.secteur} className="absolute inset-0" />
+        <BadgeCertifie className="absolute top-3 left-3" />
+        <BoutonFavori slug={e.slug} className="absolute top-3 right-3" />
+      </div>
+      <div className="p-4">
+        <p className="font-display font-bold text-ink">{e.nom}</p>
+        <p className="mt-0.5 text-xs text-muted">
+          {e.sousType} · {e.commune}
+        </p>
+        <div className="mt-2 flex items-center gap-3 text-sm">
+          <span className="flex items-center gap-1 font-bold text-ink">
+            <Star className="size-4 fill-or text-or" aria-hidden />
+            {note > 0 ? note.toFixed(1).replace(".", ",") : "—"}
+            <span className="font-normal text-muted">({e.avis.length} avis)</span>
+          </span>
+          {distance !== null && (
+            <span className="flex items-center gap-1 text-xs font-semibold text-muted">
+              <Navigation className="size-3.5" aria-hidden /> {distance.toFixed(1).replace(".", ",")} km
+            </span>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function distanceKm(a: [number, number], b: [number, number]) {
+  const R = 6371;
+  const dLat = ((b[0] - a[0]) * Math.PI) / 180;
+  const dLng = ((b[1] - a[1]) * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos((a[0] * Math.PI) / 180) * Math.cos((b[0] * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
 }

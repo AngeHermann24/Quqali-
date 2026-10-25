@@ -13,7 +13,7 @@ export function Logo({ light = false }: { light?: boolean }) {
         <ShieldCheck className="size-5" aria-hidden />
       </span>
       <span className={cn("font-display text-lg font-bold tracking-tight", light ? "text-white" : "text-primary")}>
-        Quali<span className="text-success">CI</span>
+        Qualité<span className="text-success">+</span>
       </span>
     </span>
   );

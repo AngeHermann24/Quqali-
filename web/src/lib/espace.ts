@@ -13,6 +13,7 @@ export const CLES = {
   messages: "qualite-messages-envoyes",
   rapports: "qualite-rapports-ia",
   compte: "qualite-compte-client",
+  notificationsVues: "qualite-notifications-vues",
   comptePro: "qualite-compte-pro",
   avis: "qualite-avis",
   favoris: "qualite-favoris",

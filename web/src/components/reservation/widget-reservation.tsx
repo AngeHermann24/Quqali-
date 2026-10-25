@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState, useSyncExternalStore } from "react";
 import { ArrowLeft, CalendarCheck, CircleCheck, Clock, Mail, MessageSquare, Minus, Plus } from "lucide-react";
 import type { Secteur } from "@/lib/data";
 import { formatFCFA } from "@/lib/facture-pdf";
@@ -20,10 +20,14 @@ import { type MessageEnvoye, useReservations } from "@/components/reservation/us
 
 const aujourdhuiLocal = () => new Date().toISOString().slice(0, 10);
 
+/* Instant présent, lu côté client uniquement (Cache Components interdit new Date() au prerender). */
+let instantClient: string | null = null;
+const lireMaintenant = () => (instantClient ??= new Date().toISOString());
+const sansAbonnement = () => () => {};
+
 export function WidgetReservation({ etablissementId, nom, secteur, onFermer }: { etablissementId: string; nom: string; secteur: Secteur; onFermer?: () => void }) {
   const { reservations, config, creer, charge } = useReservations(etablissementId, nom, secteur);
-  const [maintenant, setMaintenant] = useState<string | null>(null);
-  useEffect(() => setMaintenant(new Date().toISOString()), []);
+  const maintenant = useSyncExternalStore(sansAbonnement, lireMaintenant, () => null);
   const jour = maintenant?.slice(0, 10) ?? "";
   const [etape, setEtape] = useState<"choix" | "coordonnees" | "fin">("choix");
   const [date, setDate] = useState(() => ajouterJoursDate(aujourdhuiLocal(), 1));
