@@ -9,7 +9,7 @@ import { CLES } from "@/lib/espace";
 import { formatDate } from "@/lib/format";
 import type { Reservation } from "@/lib/reservation";
 import { useStockage } from "@/lib/stockage";
-import { Logo } from "@/components/logo";
+import { LogoApp } from "@/components/app/logo-app";
 import { useFavoris } from "@/components/app/favoris";
 
 export function Profil({ compte }: { compte: CompteClient | null | undefined }) {
@@ -42,7 +42,7 @@ export function Profil({ compte }: { compte: CompteClient | null | undefined }) 
   if (compte === null) {
     return (
       <div className="mx-auto flex min-h-[70dvh] w-full max-w-md flex-col px-6 pt-14">
-        <Logo />
+        <LogoApp imgClassName="h-11" />
         <h1 className="mt-10 font-display text-3xl font-extrabold text-ink">Votre profil</h1>
         <p className="mt-2 text-[15px] text-muted">
           Un compte vous permet de réserver, donner votre avis et garder vos favoris — partout.

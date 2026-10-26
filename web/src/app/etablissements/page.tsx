@@ -1,42 +1,45 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { QUARTIERS_PAR_VILLE, VILLES, parseFiltres, rechercher } from "@/lib/data";
+import { ETABLISSEMENTS } from "@/lib/data";
 import { SITE } from "@/lib/site";
-import { ResultsView } from "@/components/results-view";
+import { Explorer } from "@/components/app/explorer";
 
 export const metadata: Metadata = {
-  title: "Établissements certifiés",
-  description: `Hôtels, restaurants et établissements de santé audités sur place, avec une note de gouvernance d'au moins ${SITE.seuil} %.`,
+  title: "Explorer",
+  description: `Trouvez sur la carte d'Abidjan les établissements audités sur place, avec une note de gouvernance d'au moins ${SITE.seuil} %.`,
 };
 
-export default function EtablissementsPage(props: PageProps<"/etablissements">) {
+export default function EtablissementsPage() {
   return (
-    <>
-      <section className="bg-surface">
-        <div className="container-page py-6 sm:py-8">
-          <h1 className="font-display text-2xl font-bold text-primary sm:text-3xl">Établissements certifiés</h1>
-          <p className="mt-1 text-sm text-muted sm:text-base">Tous audités sur place, tous au-dessus de {SITE.seuil} %.</p>
-        </div>
-      </section>
-      <Suspense fallback={<ResultsSkeleton />}>
-        <Resultats searchParams={props.searchParams} />
-      </Suspense>
-    </>
+    <Suspense fallback={<SqueletteExplorer />}>
+      <Explorer etablissements={ETABLISSEMENTS} />
+    </Suspense>
   );
 }
 
-async function Resultats({ searchParams }: { searchParams: PageProps<"/etablissements">["searchParams"] }) {
-  const filtres = parseFiltres(await searchParams);
-  return <ResultsView filtres={filtres} resultats={rechercher(filtres)} villes={VILLES} quartiersParVille={QUARTIERS_PAR_VILLE} />;
-}
-
-function ResultsSkeleton() {
+function SqueletteExplorer() {
   return (
-    <div className="container-page space-y-4 py-5" aria-busy="true">
-      <div className="h-10 w-2/3 animate-pulse rounded-full bg-surface" />
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="h-32 animate-pulse rounded-2xl bg-surface" />
-      ))}
+    <div className="flex h-[calc(100dvh-5rem)] flex-col lg:h-[calc(100dvh-4rem)]" aria-busy="true">
+      <div className="flex items-center justify-between px-5 pt-4">
+        <div className="squelette size-10 rounded-full" />
+        <div className="squelette h-5 w-24 rounded-full" />
+        <div className="squelette size-10 rounded-full" />
+      </div>
+      <div className="mt-3 flex gap-2 px-5">
+        <div className="squelette h-9 w-16 rounded-full" />
+        <div className="squelette h-9 w-28 rounded-full" />
+        <div className="squelette h-9 w-20 rounded-full" />
+        <div className="squelette h-9 w-16 rounded-full" />
+      </div>
+      <div className="mt-2.5 flex gap-2 px-5">
+        <div className="squelette h-8 w-24 rounded-full" />
+        <div className="squelette h-8 w-16 rounded-full" />
+        <div className="squelette h-8 w-36 rounded-full" />
+      </div>
+      <div className="relative mt-3 flex-1 overflow-hidden">
+        <div className="squelette absolute inset-0" />
+        <div className="squelette absolute inset-x-3 bottom-4 h-24 rounded-[1.25rem]" />
+      </div>
     </div>
   );
 }

@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 import { CalendarDays, Compass, Heart, Home, User } from "lucide-react";
 import { cn } from "@/lib/site";
 
-const ONGLETS = [
+const ONGLETS: { href: string; label: string; Icon: typeof Home; exact?: boolean; alias?: string[] }[] = [
   { href: "/", label: "Accueil", Icon: Home, exact: true },
   { href: "/etablissements", label: "Explorer", Icon: Compass },
   { href: "/favoris", label: "Favoris", Icon: Heart },
-  { href: "/reservations", label: "Réservations", Icon: CalendarDays },
+  { href: "/reservations", label: "Réservations", Icon: CalendarDays, alias: ["/reserver", "/avis"] },
   { href: "/profil", label: "Profil", Icon: User },
 ];
 
@@ -21,6 +21,8 @@ const SANS_BARRE = ["/connexion"];
 export function NavBas() {
   const pathname = usePathname();
   if ([...HORS_APP, ...SANS_BARRE].some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null;
+  // Fiche établissement : la barre d'action (Réserver / Itinéraire / Appeler) la remplace.
+  if (pathname.startsWith("/etablissements/")) return null;
 
   return (
     <nav
@@ -28,8 +30,8 @@ export function NavBas() {
       className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
       <div className="flex items-center justify-around px-1 py-1.5">
-        {ONGLETS.map(({ href, label, Icon, exact }) => {
-          const actif = exact ? pathname === href : pathname.startsWith(href);
+        {ONGLETS.map(({ href, label, Icon, exact, alias }) => {
+          const actif = exact ? pathname === href : pathname.startsWith(href) || (alias ? alias.some((a) => pathname.startsWith(a)) : false);
           return (
             <Link
               key={href}

@@ -266,3 +266,192 @@ body {
 .leaflet-container {
   font-family: var(--font-inter), sans-serif;
 }
+
+/* Tuiles OSM adoucies (style clair façon maquette, sans clé d'API). */
+.leaflet-tile-pane {
+  filter: grayscale(0.4) saturate(0.55) brightness(1.07) contrast(0.92);
+}
+
+/* ===== Explorer : pins goutte, pastilles de regroupement, position usager ===== */
+.pin-explorer {
+  background: none;
+  border: none;
+}
+.pin-svg {
+  width: 34px;
+  height: 42px;
+  animation: pin-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  filter: drop-shadow(0 4px 6px rgb(15 23 42 / 0.3));
+  transition: transform 0.18s ease;
+  transform-origin: 50% 95%;
+}
+.pin-svg.on {
+  transform: scale(1.3) translateY(-4px);
+}
+@keyframes pin-pop {
+  from {
+    transform: scale(0) translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+.cluster-bulle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--c, #1e3a8a);
+  color: var(--c, #1e3a8a);
+  font: 800 14px var(--font-poppins), sans-serif;
+  box-shadow: 0 6px 16px rgb(15 23 42 / 0.25);
+}
+.me-dot {
+  display: block;
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #2d4db0;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 9px rgb(45 77 176 / 0.18);
+}
+.me-dot i {
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  border: 2px solid #2d4db0;
+  animation: halo 2.4s ease-out infinite;
+}
+@keyframes halo {
+  from {
+    transform: scale(0.3);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pin-svg,
+  .me-dot i,
+  .eclat {
+    animation: none;
+  }
+}
+
+/* Fiche : étincelles autour du cœur favori. */
+.eclat {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--color-or);
+  transform-origin: 0 0;
+  animation: eclat 0.5s ease-out forwards;
+}
+@keyframes eclat {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: rotate(inherit) translateY(-30px);
+  }
+}
+
+/* Réservation : écran de succès — confettis + coche dessinée. */
+.confetti-piece {
+  position: absolute;
+  top: -12px;
+  width: 7px;
+  height: 12px;
+  border-radius: 2px;
+  animation: confetti-chute 2.6s ease-in forwards;
+}
+@keyframes confetti-chute {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(105dvh) rotate(540deg);
+    opacity: 0;
+  }
+}
+.cercle-succes {
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  animation: trace-cercle 0.55s ease-out forwards;
+}
+.coche-succes {
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: trace-cercle 0.35s ease-out 0.45s forwards;
+}
+@keyframes trace-cercle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece {
+    animation: none;
+    display: none;
+  }
+  .cercle-succes,
+  .coche-succes {
+    animation-duration: 0.01s;
+    animation-delay: 0s;
+  }
+}
+
+/* Donner un avis : tremblement de la ligne manquante + rebond des étoiles. */
+.secoue {
+  animation: secoue 0.5s ease-in-out;
+}
+@keyframes secoue {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+.etoile-rebond {
+  animation: etoile-rebond 0.32s ease-out;
+}
+@keyframes etoile-rebond {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .secoue,
+  .etoile-rebond {
+    animation: none;
+  }
+}

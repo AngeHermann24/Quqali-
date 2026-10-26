@@ -15,6 +15,7 @@ import { PhotoPlaceholder, SECTEUR_ICONS } from "@/components/ui";
 import { BadgeCertifie, SECTEUR_COULEURS, SearchBar, SectorTile } from "@/components/app/ui-app";
 import { BoutonFavori } from "@/components/app/favoris";
 import { Lancement } from "@/components/app/lancement";
+import { LogoApp } from "@/components/app/logo-app";
 import { useNotifications } from "@/components/app/notifications";
 
 const MOTS_SECTEUR: [RegExp, Secteur][] = [
@@ -89,10 +90,10 @@ export function AccueilApp({ etablissements }: { etablissements: Etablissement[]
       <Lancement />
 
       {/* En-tête : logo, notifications, avatar */}
-      <header className="flex items-center justify-between px-5 pt-5">
-        <span className="font-display text-xl font-extrabold text-ink">
-          Qualité<span className="text-success">+</span>
-        </span>
+      <header className="relative flex items-center justify-end px-5 pt-5">
+        <Link href="/" aria-label="Qualité+ — accueil" className="absolute left-1/2 -translate-x-1/2 rounded-lg">
+          <LogoApp />
+        </Link>
         <div className="flex items-center gap-3">
           <Link href="/notifications" aria-label="Notifications" className="relative grid size-10 place-items-center rounded-full border border-line bg-white text-ink transition active:scale-95">
             <Bell className="size-5" aria-hidden />

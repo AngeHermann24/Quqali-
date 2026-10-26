@@ -26,6 +26,8 @@ export interface AvisClient {
   auteur: string;
   date: string;
   note: number;
+  /** Notes par critère (hygiène, accueil, présentation), 1–5. */
+  criteres?: Record<string, number>;
   personnel?: Record<string, number>;
   commentaire: string;
   preuve: PreuveVisite;
@@ -90,6 +92,7 @@ export const masquerNom = (nom: string) => {
 export interface SaisieAvis {
   compte: CompteClient;
   note: number;
+  criteres?: Record<string, number>;
   commentaire: string;
   preuve: PreuveVisite;
 }
@@ -136,6 +139,7 @@ export function creerAvis(saisie: SaisieAvis, ctx: ContexteModeration, maintenan
     auteur: masquerNom(saisie.compte.nom),
     date: maintenant,
     note: saisie.note,
+    criteres: saisie.criteres && Object.keys(saisie.criteres).length ? saisie.criteres : undefined,
     personnel: personnel && Object.keys(personnel).length ? personnel : undefined,
     commentaire: saisie.commentaire.trim(),
     preuve: saisie.preuve,

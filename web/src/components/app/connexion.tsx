@@ -8,7 +8,7 @@ import { telephoneNorm } from "@/lib/avis";
 import { CLES } from "@/lib/espace";
 import { ecrireStockage } from "@/lib/stockage";
 import { cn } from "@/lib/site";
-import { Logo } from "@/components/logo";
+import { LogoApp } from "@/components/app/logo-app";
 
 const TEL_VALIDE = /^(\+?225)?[\s.-]?(01|05|07|27)([\s.-]?\d{2}){4}$/;
 
@@ -92,7 +92,7 @@ export function Connexion() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-16 pb-10">
-      <Logo />
+      <LogoApp imgClassName="h-11" />
 
       {etape === "tel" && (
         <>

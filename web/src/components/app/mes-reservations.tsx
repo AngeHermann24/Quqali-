@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CalendarDays, CalendarX, MessageSquarePlus } from "lucide-react";
-import { type CompteClient, telephoneNorm } from "@/lib/avis";
+import { BadgeCheck, CalendarDays, CalendarX, MessageSquarePlus, Pencil } from "lucide-react";
+import { type AvisClient, type CompteClient, telephoneNorm } from "@/lib/avis";
 import { getEtablissement } from "@/lib/data";
 import { CLES } from "@/lib/espace";
 import { formatDate } from "@/lib/format";
@@ -28,6 +28,7 @@ const COULEURS: Record<StatutReservation, string> = {
 
 export function MesReservations({ compte }: { compte: CompteClient | null | undefined }) {
   const [toutes, setToutes] = useStockage<Record<string, Reservation[]>>(CLES.reservations);
+  const [tousAvis] = useStockage<Record<string, AvisClient[]>>(CLES.avis);
   const [onglet, setOnglet] = useState<(typeof ONGLETS)[number]["id"]>("avenir");
 
   const mienne = useMemo(() => {
@@ -106,19 +107,29 @@ export function MesReservations({ compte }: { compte: CompteClient | null | unde
                 <p className="mt-2 text-sm text-ink">{detail}</p>
                 <div className="mt-3 flex gap-2">
                   {(r.statut === "en_attente" || r.statut === "confirmee") && (
-                    <button
-                      type="button"
-                      onClick={() => annuler(r)}
-                      className="btn flex-1 border border-line py-2 text-xs font-bold text-red-600 hover:bg-red-50"
-                    >
-                      <CalendarX className="size-4" aria-hidden /> Annuler
-                    </button>
+                    <>
+                      <Link href={`/reserver/${r.etab}?modifier=${r.id}`} className="btn btn-outline flex-1 py-2 text-xs font-bold">
+                        <Pencil className="size-4" aria-hidden /> Modifier
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => annuler(r)}
+                        className="btn flex-1 border border-line py-2 text-xs font-bold text-red-600 hover:bg-red-50"
+                      >
+                        <CalendarX className="size-4" aria-hidden /> Annuler
+                      </button>
+                    </>
                   )}
-                  {(r.statut === "confirmee" || r.statut === "honoree") && (
-                    <Link href={`/etablissements/${r.etab}#avis`} className="btn btn-outline flex-1 py-2 text-xs font-bold">
-                      <MessageSquarePlus className="size-4" aria-hidden /> Donner mon avis
-                    </Link>
-                  )}
+                  {(r.statut === "confirmee" || r.statut === "honoree") &&
+                    ((tousAvis?.[r.etab] ?? []).some((a) => a.preuve.type === "reservation" && a.preuve.ref === r.id && a.statut !== "rejete") ? (
+                      <span className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-bold text-success">
+                        <BadgeCheck className="size-4" aria-hidden /> Avis publié ✓
+                      </span>
+                    ) : (
+                      <Link href={`/avis/${r.etab}?reservation=${r.id}`} className="btn btn-outline flex-1 py-2 text-xs font-bold">
+                        <MessageSquarePlus className="size-4" aria-hidden /> Donner mon avis
+                      </Link>
+                    ))}
                 </div>
               </li>
             );

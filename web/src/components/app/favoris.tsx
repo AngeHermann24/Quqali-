@@ -8,11 +8,20 @@ import { cn } from "@/lib/site";
 
 export function useFavoris() {
   const [favoris, setFavoris] = useStockage<string[]>(CLES.favoris);
+  const liste = favoris ?? [];
+  const retirer = (slug: string) => setFavoris((p) => (p ?? []).filter((s) => s !== slug));
+  /** Réinsère un favori (annulation) à sa position initiale quand possible. */
+  const ajouter = (slug: string, index?: number) =>
+    setFavoris((p) => {
+      const p0 = (p ?? []).filter((s) => s !== slug);
+      return index === undefined ? [slug, ...p0] : [...p0.slice(0, index), slug, ...p0.slice(index)];
+    });
+  const retirerPlusieurs = (slugs: string[]) => setFavoris((p) => (p ?? []).filter((s) => !slugs.includes(s)));
   const toggle = (slug: string) => {
-    setFavoris((p) => ((p ?? []).includes(slug) ? (p ?? []).filter((s) => s !== slug) : [...(p ?? []), slug]));
+    setFavoris((p) => ((p ?? []).includes(slug) ? (p ?? []).filter((s) => s !== slug) : [slug, ...(p ?? [])]));
     navigator.vibrate?.(15);
   };
-  return { favoris: favoris ?? [], estFavori: (s: string) => (favoris ?? []).includes(s), toggle, charge: favoris !== undefined };
+  return { favoris: liste, estFavori: (s: string) => liste.includes(s), toggle, retirer, ajouter, retirerPlusieurs, charge: favoris !== undefined };
 }
 
 export function BoutonFavori({ slug, className, plat = false }: { slug: string; className?: string; plat?: boolean }) {

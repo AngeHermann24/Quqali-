@@ -21,6 +21,8 @@ export interface ConfigReservation {
   autoConfirmation: boolean;
   delaiMinHeures: number;
   horizonJours: number;
+  /** Acompte en FCFA exigé à la réservation (0 ou absent = gratuit, pas d'étape paiement). */
+  acompteRequis?: number;
   restaurant: ConfigRestaurant;
   hotel: ConfigHotel;
   sante: ConfigSante;
