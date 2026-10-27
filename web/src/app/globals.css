@@ -455,3 +455,62 @@ body {
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Mode sombre de l'espace Pro (fond bleu nuit #0B1B3F)                 */
+/* ------------------------------------------------------------------ */
+.pro-sombre {
+  background: var(--color-nuit);
+}
+.pro-sombre .bg-white {
+  background-color: #12294f;
+}
+.pro-sombre .bg-white\/70,
+.pro-sombre .bg-white\/95 {
+  background-color: rgb(18 41 79 / 0.9);
+}
+.pro-sombre .bg-surface {
+  background-color: #0b1b3f;
+}
+.pro-sombre .text-ink {
+  color: #e8edf8;
+}
+.pro-sombre .text-muted {
+  color: #93a6c9;
+}
+.pro-sombre .border-line {
+  border-color: #22355e;
+}
+.pro-sombre .divide-line > * + * {
+  border-color: #22355e;
+}
+.pro-sombre .bg-primary-soft {
+  background-color: #1d3468;
+}
+.pro-sombre .bg-success-soft {
+  background-color: #123524;
+}
+.pro-sombre .shadow-card,
+.pro-sombre .shadow-panneau,
+.pro-sombre .shadow-flottant {
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.4);
+}
+.pro-sombre input,
+.pro-sombre textarea {
+  color-scheme: dark;
+}
+
+/* Lecteur de capsule de formation (démo) */
+@keyframes lecture {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .barre-lecture {
+    animation-duration: 0.01s;
+  }
+}

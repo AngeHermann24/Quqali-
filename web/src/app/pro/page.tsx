@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { DashboardEtablissement } from "@/components/espace/dashboard-etablissement";
+import { TableauBordPro } from "@/components/pro/tableau-bord-pro";
 
-export const metadata: Metadata = { title: "Espace établissement", robots: { index: false } };
+export const metadata: Metadata = { title: "Tableau de bord", robots: { index: false } };
 
-export default function EspaceEtablissementPage() {
-  return <DashboardEtablissement />;
+export default function TableauBordPage() {
+  return <TableauBordPro />;
 }

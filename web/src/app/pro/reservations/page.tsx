@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { GestionReservations } from "@/components/reservation/gestion-reservations";
+import { ReservationsPro } from "@/components/pro/reservations-pro";
 
-export const metadata: Metadata = { title: "Réservations en ligne", robots: { index: false } };
+export const metadata: Metadata = { title: "Réservations", robots: { index: false } };
 
 export default function ReservationsPage() {
-  return <GestionReservations />;
+  return <ReservationsPro />;
 }

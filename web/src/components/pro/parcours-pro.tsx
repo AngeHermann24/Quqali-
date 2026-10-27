@@ -1,19 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarClock, Check, FilePlus2, Footprints, Handshake, PartyPopper } from "lucide-react";
-import { CLES, type Dossier, STATUTS, auditSimule, maintenant, nomIntervenant } from "@/lib/espace";
+import { CalendarClock, ChevronRight, FilePlus2, FileSearch, Footprints, Handshake, PartyPopper, ClipboardCheck, CreditCard } from "lucide-react";
+import { CLES, type Dossier, ajouterJours, auditSimule, maintenant, nomIntervenant } from "@/lib/espace";
 import { INTERVENANTS } from "@/lib/espace";
 import { assignerAgent } from "@/lib/regles";
 import { etatAbonnement } from "@/lib/abonnement";
 import { formatDate, formatScore } from "@/lib/format";
-import { SITE, cn } from "@/lib/site";
+import { SITE } from "@/lib/site";
 import { useStockage } from "@/lib/stockage";
 import { useConfigTarifs, useHorloge } from "@/lib/use-config";
-import { Bloc, Chargement, EspaceHeader, PanneauDemo, Pastille } from "@/components/espace/ui";
+import { Chargement, PanneauDemo } from "@/components/espace/ui";
+import { EntetePro, ProgressBarPro, StepperPro, type EtapeStepper } from "@/components/pro/ui";
 
-const CRENEAUX = ["2026-11-06T09:00", "2026-11-07T14:00", "2026-11-10T10:30"];
+/** Trois créneaux proposés, calculés à partir d'aujourd'hui (J+3, J+4, J+7). */
+const creneaux = (aujourdhui: string) => [
+  `${ajouterJours(aujourdhui, 3).slice(0, 10)}T09:00`,
+  `${ajouterJours(aujourdhui, 4).slice(0, 10)}T14:00`,
+  `${ajouterJours(aujourdhui, 7).slice(0, 10)}T10:30`,
+];
+const NOMS_ETAPES = ["Dossier", "Validé", "Audit", "Résultat", "Paiement", "Publié"] as const;
 
+/** Écran 2 — Mon parcours : stepper 6 étapes, étape actuelle, prochaines étapes. */
 export function ParcoursPro() {
   const [dossier, setDossier] = useStockage<Dossier>(CLES.dossier);
   const { aujourdhui } = useHorloge();
@@ -23,14 +31,17 @@ export function ParcoursPro() {
 
   if (!dossier)
     return (
-      <div className="container-page py-8">
-        <div className="card mx-auto max-w-lg p-8 text-center">
-          <Footprints className="mx-auto size-12 text-primary" aria-hidden />
-          <h1 className="mt-4 font-display text-2xl font-bold text-ink">Votre parcours de certification</h1>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
+      <div className="bg-surface px-5">
+        <EntetePro titre="Mon parcours" />
+        <div className="mt-10 flex flex-col items-center rounded-3xl border border-line bg-white p-8 text-center shadow-card">
+          <span className="grid size-16 place-items-center rounded-full bg-primary-soft text-primary">
+            <Footprints className="size-8" aria-hidden />
+          </span>
+          <h1 className="mt-4 font-display text-xl font-bold text-ink">Votre parcours de certification</h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
             Déposez votre dossier : un agent évaluateur indépendant visitera votre établissement. À partir de {SITE.seuil} %, vous choisissez votre pack et votre fiche est publiée.
           </p>
-          <Link href="/pro/inscription" className="btn btn-primary mt-6 w-full">
+          <Link href="/pro/inscription" className="btn btn-success mt-6 w-full">
             <FilePlus2 className="size-4" aria-hidden /> Déposer mon dossier
           </Link>
         </div>
@@ -39,7 +50,6 @@ export function ParcoursPro() {
 
   const changer = (statut: Dossier["statut"], partiel: Partial<Dossier> = {}) =>
     setDossier({ ...dossier, ...partiel, statut, historique: [...dossier.historique, { statut, date: maintenant() }] });
-  const dateStatut = (s: Dossier["statut"]) => dossier.historique.findLast((h) => h.statut === s)?.date;
 
   const etatAb = etatAbonnement(dossier.abonnement, aujourdhui, config);
   const admis = dossier.statut === "admis";
@@ -54,110 +64,150 @@ export function ParcoursPro() {
     changer("en_audit", { agentAuditId: acc?.agentReauditId ?? agent?.id });
   };
 
-  const etapes = [
-    { label: "Dossier soumis", description: STATUTS.soumis.description, date: formatDate(dateStatut("soumis")!), etat: "fait" as const },
-    {
-      label: "Dossier validé",
-      description: dossier.statut === "soumis" ? "Vérification des documents en cours par nos équipes." : "Pièces conformes, un agent vous est assigné.",
-      etat: dossier.statut === "soumis" ? ("actuel" as const) : ("fait" as const),
-    },
-    {
-      label: "Audit programmé",
-      description: dossier.creneauAudit
-        ? `Visite le ${formatDate(dossier.creneauAudit)} · Agent ${nomIntervenant(dossier.agentAuditId)}`
-        : dossier.statut === "en_audit"
-          ? "Choisissez votre créneau ci-dessous."
-          : "Créneau à convenir avec l'agent évaluateur.",
-      date: dossier.creneauAudit ? formatDate(dossier.creneauAudit) : undefined,
-      etat: dossier.statut === "soumis" ? ("a_venir" as const) : dossier.statut === "en_audit" ? ("actuel" as const) : ("fait" as const),
-    },
-    {
-      label: "Audit réalisé",
-      description: "Notation sur place : hygiène, accueil, présentation, gouvernance.",
-      etat: audite ? ("fait" as const) : ("a_venir" as const),
-    },
-    {
-      label: audite ? `Résultat : ${formatScore(dossier.audit!.global)} %` : `Résultat (seuil ${SITE.seuil} %)`,
-      description: refuse ? "Sous le seuil — plan d'action et accompagnement disponibles." : undefined,
-      etat: admis ? ("fait" as const) : refuse ? ("echec" as const) : ("a_venir" as const),
-    },
-    {
-      label: "Paiement du pack",
-      description: "Basique ou Premium — le paiement n'influence jamais la note.",
-      etat: publie ? ("fait" as const) : admis ? ("actuel" as const) : ("a_venir" as const),
-    },
-    {
-      label: "Publié",
-      description: publie ? "Votre fiche est visible avec le badge « Qualité certifiée »." : "Votre fiche devient visible dans l'app usager.",
-      etat: publie ? ("fait" as const) : ("a_venir" as const),
-    },
+  // Stepper horizontal : 6 étapes dérivées du statut
+  const etapes: EtapeStepper[] = [
+    { label: NOMS_ETAPES[0], etat: "fait" },
+    { label: NOMS_ETAPES[1], etat: dossier.statut === "soumis" ? "actuel" : "fait" },
+    { label: NOMS_ETAPES[2], etat: audite ? "fait" : dossier.statut === "en_audit" ? "actuel" : "a_venir" },
+    { label: NOMS_ETAPES[3], etat: admis ? "fait" : refuse ? "echec" : "a_venir" },
+    { label: NOMS_ETAPES[4], etat: publie ? "fait" : admis ? "actuel" : "a_venir" },
+    { label: NOMS_ETAPES[5], etat: publie ? "fait" : "a_venir" },
   ];
+  const indice = etapes.findIndex((e) => e.etat === "actuel" || e.etat === "echec" || e.etat === "a_venir");
+  const etapeActuelle = indice === -1 ? 5 : indice;
+  const progression = (etapeActuelle / 5) * 100;
+
+  const descriptions: Record<number, { titre: string; detail: string }> = {
+    0: { titre: "Dossier en préparation", detail: "Complétez vos informations et envoyez vos documents." },
+    1: { titre: "Dossier soumis", detail: "Votre dossier a été reçu et est en cours d'examen par notre équipe." },
+    2: { titre: "Audit sur place", detail: dossier.creneauAudit ? `Visite le ${formatDate(dossier.creneauAudit)} · Agent ${nomIntervenant(dossier.agentAuditId)}` : "Choisissez votre créneau de visite ci-dessous." },
+    3: { titre: "Résultat de l'audit", detail: `Le seuil d'admission est de ${SITE.seuil} %.` },
+    4: { titre: "Paiement de l'abonnement", detail: "Choisissez votre pack — le paiement n'influence jamais la note." },
+    5: { titre: refuse ? "Score sous le seuil" : "Publication", detail: refuse ? "Plan d'action et accompagnement disponibles." : "Votre fiche devient visible dans l'app usager." },
+  };
+
+  // Prochaines étapes selon la situation
+  const prochaines: { titre: string; delai: string; Icon: typeof FileSearch; href?: string }[] = [];
+  if (dossier.statut === "soumis") {
+    prochaines.push({ titre: "Examen du dossier", delai: "Dans 2 jours", Icon: FileSearch }, { titre: "Audit sur place", delai: "À programmer", Icon: CalendarClock });
+  } else if (dossier.statut === "en_audit") {
+    prochaines.push(
+      { titre: "Audit sur place", delai: dossier.creneauAudit ? formatDate(dossier.creneauAudit) : "À programmer", Icon: CalendarClock, href: "/pro/audit" },
+      { titre: "Résultat de l'audit", delai: "Sous 48 h après la visite", Icon: ClipboardCheck },
+    );
+  } else if (admis && !dossier.abonnement) {
+    prochaines.push({ titre: "Choisir mon abonnement", delai: "Maintenant", Icon: CreditCard, href: "/pro/abonnement" });
+  } else if (refuse && !acc) {
+    prochaines.push({ titre: "Demander un accompagnement", delai: "Plan d'action personnalisé", Icon: Handshake, href: "/pro/accompagnement" });
+  } else if (refuse && acc?.pretLe) {
+    prochaines.push({ titre: "Réaudit", delai: "Prêt à être programmé", Icon: CalendarClock });
+  }
 
   return (
-    <>
-      <EspaceHeader
-        role="Mon parcours"
-        titre={dossier.nom}
-        sousTitre={`${dossier.sousType} · ${dossier.quartier}, ${dossier.commune}`}
-        actions={<Pastille ton={publie ? "succes" : "primaire"}>{publie ? "Publié" : STATUTS[dossier.statut].label}</Pastille>}
-      />
+    <div className="bg-surface">
+      <EntetePro titre="Mon parcours" />
+      <p className="px-5 text-center text-xs text-muted">Suivez chaque étape jusqu&apos;à la publication de votre établissement.</p>
 
-      <div className="container-page max-w-2xl space-y-5 py-6">
+      <div className="space-y-5 px-5 py-5">
         {publie && (
-          <div className="card border-success/30 bg-success-soft/60 p-5 text-center [animation:pop_.45s_ease_both]">
+          <div className="rounded-3xl border border-success/30 bg-success-soft/60 p-5 text-center [animation:pop_.45s_ease_both]">
             <PartyPopper className="mx-auto size-10 text-success" aria-hidden />
-            <p className="mt-2 font-display text-lg font-bold text-ink">Félicitations, vous êtes certifié !</p>
-            <p className="text-sm text-muted">Votre établissement est visible avec le badge « Qualité certifiée ». Pilotez-le depuis l&apos;onglet Accueil.</p>
+            <p className="mt-2 font-display text-lg font-bold text-ink">Félicitations, vous êtes certifié&nbsp;!</p>
+            <p className="text-sm text-muted">Votre établissement est visible avec le badge « Qualité certifiée ».</p>
+            <Link href="/pro" className="btn btn-success mt-4 w-full">
+              Voir mon tableau de bord
+            </Link>
           </div>
         )}
 
-        <Bloc titre="Votre certification, étape par étape">
-          <Chemin etapes={etapes} />
-        </Bloc>
+        {/* Stepper 6 étapes */}
+        <section className="rounded-3xl border border-line bg-white p-4 shadow-card">
+          <StepperPro etapes={etapes} />
+        </section>
 
+        {/* Étape actuelle */}
+        <section className="rounded-3xl border border-line bg-white p-4 shadow-card">
+          <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Étape actuelle</p>
+          <div className="mt-2 flex items-center gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-success-soft text-success">
+              <ClipboardCheck className="size-5" aria-hidden />
+            </span>
+            <div>
+              <p className="font-display text-sm font-bold text-ink">{descriptions[etapeActuelle].titre}</p>
+              <p className="text-xs text-muted">{descriptions[etapeActuelle].detail}</p>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <ProgressBarPro valeur={Math.max(progression, 8)} className="flex-1" />
+            <span className="text-xs font-bold text-muted">{etapeActuelle + 1}/6</span>
+          </div>
+        </section>
+
+        {/* Créneau d'audit */}
         {dossier.statut === "en_audit" && !dossier.creneauAudit && (
-          <Bloc titre="Choisissez votre créneau d'audit" icone={<CalendarClock className="size-5" aria-hidden />}>
-            <p className="mb-3 text-sm text-muted">L&apos;agent se déplace sur place à la date choisie. Rappel SMS la veille.</p>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {CRENEAUX.map((c) => (
+          <section className="rounded-3xl border border-line bg-white p-4 shadow-card">
+            <h2 className="flex items-center gap-2 font-display text-sm font-bold text-ink">
+              <CalendarClock className="size-4 text-primary" aria-hidden /> Choisissez votre créneau d&apos;audit
+            </h2>
+            <p className="mt-1 text-xs text-muted">L&apos;agent se déplace sur place à la date choisie. Rappel SMS la veille.</p>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {creneaux(aujourdhui).map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setDossier({ ...dossier, creneauAudit: c })}
-                  className="card px-3 py-3.5 text-center text-sm font-semibold text-ink transition hover:border-primary active:scale-[0.97]"
+                  className="rounded-2xl border border-line px-2 py-3 text-center text-xs font-semibold text-ink transition hover:border-bleu active:scale-[0.97]"
                 >
                   {formatDate(c)}
-                  <span className="block text-xs font-normal text-muted">{new Date(c).getUTCHours()} h{String(new Date(c).getUTCMinutes()).padStart(2, "0")}</span>
+                  <span className="block text-[10px] font-normal text-muted">
+                    {new Date(c).getUTCHours()} h{String(new Date(c).getUTCMinutes()).padStart(2, "0")}
+                  </span>
                 </button>
               ))}
             </div>
-          </Bloc>
+          </section>
+        )}
+
+        {/* Prochaines étapes */}
+        {prochaines.length > 0 && (
+          <section>
+            <h2 className="font-display text-sm font-bold text-ink">Prochaines étapes</h2>
+            <ul className="mt-3 space-y-2.5">
+              {prochaines.map(({ titre, delai, Icon, href }) => {
+                const corps = (
+                  <span className="flex items-center gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                      <Icon className="size-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold text-ink">{titre}</span>
+                      <span className="text-xs text-muted">{delai}</span>
+                    </span>
+                    <ChevronRight className="size-4 text-muted" aria-hidden />
+                  </span>
+                );
+                return (
+                  <li key={titre} className="rounded-2xl border border-line bg-white p-3.5 shadow-card">
+                    {href ? <Link href={href}>{corps}</Link> : corps}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         )}
 
         {dossier.audit && (
-          <Link href="/pro/resultat" className="card flex items-center justify-between p-5 transition hover:border-primary/40">
+          <Link href="/pro/resultat" className="flex items-center justify-between rounded-2xl border border-line bg-white p-4 shadow-card transition active:scale-[0.99]">
             <span className="flex items-center gap-3">
-              <span className={cn("grid size-11 place-items-center rounded-2xl", admis ? "bg-success-soft text-success" : "bg-amber-100 text-amber-700")}>
-                <Check className="size-5" aria-hidden />
+              <span className="grid size-10 place-items-center rounded-xl bg-success-soft text-success">
+                <ClipboardCheck className="size-5" aria-hidden />
               </span>
               <span>
-                <span className="block font-semibold text-ink">Résultat de l&apos;audit : {formatScore(dossier.audit.global)} %</span>
+                <span className="block text-sm font-bold text-ink">Résultat de l&apos;audit : {formatScore(dossier.audit.global)} %</span>
                 <span className="text-xs text-muted">Détail par critère et rapport PDF</span>
               </span>
             </span>
-            <span className="font-display text-xl font-bold text-primary">→</span>
-          </Link>
-        )}
-
-        {admis && !dossier.abonnement && (
-          <Link href="/pro/abonnement" className="btn btn-success w-full">
-            Choisir mon pack et publier ma fiche
-          </Link>
-        )}
-
-        {refuse && !acc && (
-          <Link href="/pro/accompagnement" className="btn btn-primary w-full">
-            <Handshake className="size-4" aria-hidden /> Demander un accompagnement
+            <ChevronRight className="size-4 text-muted" aria-hidden />
           </Link>
         )}
 
@@ -185,43 +235,6 @@ export function ParcoursPro() {
           )}
         </PanneauDemo>
       </div>
-    </>
-  );
-}
-
-/** Chemin vertical animé : ligne verte qui avance, étape courante pulsante. */
-function Chemin({ etapes }: { etapes: { label: string; description?: string; date?: string; etat: "fait" | "actuel" | "echec" | "a_venir" }[] }) {
-  const nbFait = etapes.findIndex((e) => e.etat !== "fait");
-  const atteint = nbFait === -1 ? etapes.length - 1 : nbFait;
-  return (
-    <ol className="relative space-y-0">
-      <span className="absolute top-4 bottom-4 left-[15px] w-0.5 bg-line" aria-hidden />
-      <span
-        className="absolute top-4 left-[15px] w-0.5 bg-success transition-all duration-700 ease-out"
-        style={{ height: `${Math.max(0, (atteint / (etapes.length - 1)) * 100) - 4}%` }}
-        aria-hidden
-      />
-      {etapes.map((e, i) => (
-        <li key={e.label} className="relative flex gap-3 pb-6 last:pb-0">
-          <span
-            className={cn(
-              "relative z-10 grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold",
-              e.etat === "fait" && "bg-success text-white",
-              e.etat === "actuel" && "bg-primary text-white ring-4 ring-primary-soft",
-              e.etat === "echec" && "bg-red-600 text-white",
-              e.etat === "a_venir" && "border-2 border-line bg-white text-muted",
-            )}
-          >
-            {e.etat === "fait" ? <Check className="size-4" aria-hidden /> : i + 1}
-            {e.etat === "actuel" && <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" aria-hidden />}
-          </span>
-          <div className="min-w-0 pt-1">
-            <p className={cn("text-sm font-semibold", e.etat === "a_venir" ? "text-muted" : "text-ink")}>{e.label}</p>
-            {e.description && <p className="text-xs leading-relaxed text-muted">{e.description}</p>}
-            {e.date && <p className="mt-0.5 text-xs font-medium text-primary">{e.date}</p>}
-          </div>
-        </li>
-      ))}
-    </ol>
+    </div>
   );
 }

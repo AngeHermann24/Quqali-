@@ -6,6 +6,7 @@ import { cn } from "@/lib/site";
 
 const SECTIONS = [
   { href: "/admin", label: "Vue d'ensemble" },
+  { href: "/admin/statistiques", label: "Statistiques" },
   { href: "/admin/candidatures", label: "Candidatures" },
   { href: "/admin/agents", label: "Agents & affectations" },
   { href: "/admin/etablissements", label: "Établissements" },

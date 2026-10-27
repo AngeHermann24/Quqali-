@@ -1,23 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { Camera, FileCheck2, FilePlus2, FileUp } from "lucide-react";
+import { useRef, useState } from "react";
+import { FilePlus2, Info } from "lucide-react";
 import { CLES, DOCUMENTS_REQUIS, type Dossier } from "@/lib/espace";
 import { useStockage } from "@/lib/stockage";
-import { Bloc, Chargement, EspaceHeader, Pastille } from "@/components/espace/ui";
+import { Chargement } from "@/components/espace/ui";
+import { EntetePro, ToastPro, UploadItem } from "@/components/pro/ui";
 
+/** Onglet Documents — liste des pièces, statuts, remplacement. */
 export function DocumentsPro() {
   const [dossier, setDossier] = useStockage<Dossier>(CLES.dossier);
+  const [toast, setToast] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+  const typeActif = useRef<string>("");
+
   if (dossier === undefined) return <Chargement />;
 
   if (!dossier)
     return (
-      <div className="container-page py-8">
-        <div className="card mx-auto max-w-lg p-8 text-center">
-          <FilePlus2 className="mx-auto size-12 text-primary" aria-hidden />
-          <h1 className="mt-4 font-display text-2xl font-bold text-ink">Déposez d&apos;abord votre dossier</h1>
-          <p className="mt-2 text-sm text-muted">La liste des pièces requises dépend de votre secteur d&apos;activité.</p>
-          <Link href="/pro/inscription" className="btn btn-primary mt-5">
+      <div className="bg-surface px-5">
+        <EntetePro titre="Documents" />
+        <div className="mt-10 flex flex-col items-center rounded-3xl border border-line bg-white p-8 text-center shadow-card">
+          <span className="grid size-16 place-items-center rounded-full bg-primary-soft text-primary">
+            <FilePlus2 className="size-8" aria-hidden />
+          </span>
+          <h1 className="mt-4 font-display text-xl font-bold text-ink">Déposez d&apos;abord votre dossier</h1>
+          <p className="mt-2 text-sm text-muted">La liste des pièces requises dépend de votre type d&apos;établissement.</p>
+          <Link href="/pro/inscription" className="btn btn-success mt-5 w-full">
             Commencer mon dossier
           </Link>
         </div>
@@ -25,50 +35,63 @@ export function DocumentsPro() {
     );
 
   const requis = DOCUMENTS_REQUIS[dossier.secteur];
-  const envoyer = (type: string, nom: string) => {
+
+  const remplacer = (type: string, fichiers: FileList | null) => {
+    const nom = fichiers?.[0]?.name;
     if (!nom) return;
     setDossier({ ...dossier, documents: [...dossier.documents.filter((d) => d.type !== type), { type, nom }] });
+    navigator.vibrate?.(8);
+    setToast(true);
+    setTimeout(() => setToast(false), 3000);
   };
 
+  const envoyes = dossier.documents.length;
+
   return (
-    <>
-      <EspaceHeader role="Documents" titre="Pièces du dossier" sousTitre={`${dossier.nom} · ${dossier.documents.length} document(s) reçus`} />
-      <div className="container-page max-w-2xl space-y-4 py-6">
-        <ul className="space-y-3">
-          {requis.map((r) => {
-            const recu = dossier.documents.find((d) => d.type === r.type);
-            return (
-              <li key={r.type} className="card flex items-center gap-3 p-4">
-                <span className={`grid size-11 shrink-0 place-items-center rounded-2xl ${recu ? "bg-success-soft text-success" : "bg-amber-100 text-amber-700"}`}>
-                  {recu ? <FileCheck2 className="size-5" aria-hidden /> : <FileUp className="size-5" aria-hidden />}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-ink">
-                    {r.label} {r.obligatoire && <span className="text-success">*</span>}
-                  </p>
-                  <p className="truncate text-xs text-muted">{recu ? recu.nom : r.obligatoire ? "Requis" : "Recommandé"}</p>
-                </div>
-                <label className="btn btn-outline shrink-0 cursor-pointer px-3 py-2 text-xs">
-                  <Camera className="size-4" aria-hidden /> {recu ? "Renvoyer" : "Envoyer"}
-                  <input
-                    type="file"
-                    accept="image/*,.pdf"
-                    className="hidden"
-                    onChange={(e) => envoyer(r.type, e.target.files?.[0]?.name ?? "")}
-                  />
-                </label>
-                <Pastille ton={recu ? "succes" : "primaire"}>{recu ? "Reçu" : "À envoyer"}</Pastille>
-              </li>
-            );
-          })}
-        </ul>
-        <Bloc>
-          <p className="text-sm leading-relaxed text-muted">
-            Prenez vos pièces en photo directement avec votre téléphone. Nos équipes les vérifient avant de valider votre dossier — vous serez notifié si
-            une pièce doit être renvoyée.
-          </p>
-        </Bloc>
-      </div>
-    </>
+    <div className="bg-surface">
+      <EntetePro titre="Documents" />
+      <p className="px-5 text-center text-xs text-muted">
+        {dossier.nom} · {envoyes} document{envoyes > 1 ? "s" : ""} reçu{envoyes > 1 ? "s" : ""}
+      </p>
+
+      <input
+        ref={input}
+        type="file"
+        accept="image/*,.pdf"
+        className="hidden"
+        onChange={(e) => remplacer(typeActif.current, e.target.files)}
+      />
+
+      <ul className="space-y-3 px-5 py-5">
+        {requis.map((r) => {
+          const recu = r.type === "photos" ? dossier.documents.filter((d) => d.type === "photos") : undefined;
+          const doc = dossier.documents.find((d) => d.type === r.type);
+          const nbPhotos = recu?.length ?? 0;
+          return (
+            <li key={r.type}>
+              <UploadItem
+                label={`${r.label}${r.obligatoire ? " *" : ""}`}
+                detail={r.type === "photos" ? "JPG, PNG · 10 Mo · min. 5" : "PDF, JPG · 5 Mo"}
+                etat={r.type === "photos" ? (nbPhotos ? "envoye" : "a_envoyer") : doc ? "envoye" : "a_envoyer"}
+                fichier={r.type === "photos" ? (nbPhotos ? `${nbPhotos} photo(s) reçue(s)` : r.obligatoire ? "Requis" : "Recommandé") : doc?.nom ?? (r.obligatoire ? "Requis" : "Recommandé")}
+                onAjouter={() => {
+                  typeActif.current = r.type;
+                  input.current?.click();
+                }}
+                onRetirer={() => setDossier({ ...dossier, documents: dossier.documents.filter((d) => d.type !== r.type) })}
+              />
+            </li>
+          );
+        })}
+      </ul>
+
+      <p className="mx-5 flex items-start gap-2 rounded-2xl bg-primary-soft p-3.5 text-xs leading-relaxed text-primary">
+        <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+        Prenez vos pièces en photo directement avec votre téléphone. Nos équipes les vérifient avant de valider votre dossier — vous serez notifié si
+        une pièce doit être renvoyée.
+      </p>
+
+      <ToastPro message="Document remplacé" visible={toast} />
+    </div>
   );
 }

@@ -5,6 +5,7 @@ import {
   CANDIDATURES_PARTENAIRES_DEMO,
   DOSSIERS_CANDIDATURES_DEMO,
   TRANSACTIONS_DEMO,
+  VENTES_FORMATIONS_DEMO,
   candidatsAgent,
   demarrerAudit,
   enregistrerResultatAudit,
@@ -13,8 +14,11 @@ import {
   peutDemarrerAudit,
   refuserDossier,
   remettreBadge,
+  repartitionPaiements,
   retablir,
   retirerBadge,
+  revenusParMois,
+  statistiquesFormations,
   statistiquesGlobales,
   suspendre,
   transitionPartenaire,
@@ -115,4 +119,24 @@ test("statistiques globales", () => {
   assert.strictEqual(stats.badgesRetires, 1);
   assert.strictEqual(stats.revenusTotal, TRANSACTIONS_DEMO.reduce((s, t) => s + t.montant, 0));
   assert.ok(stats.revenusMois < stats.revenusTotal);
+});
+
+test("revenus par mois : fenêtre glissante ordonnée, échoués ignorés", () => {
+  const mois = revenusParMois(TRANSACTIONS_DEMO, "2026-10-23", 3);
+  assert.deepStrictEqual(mois.map((m) => m.mois), ["2026-08", "2026-09", "2026-10"]);
+  assert.strictEqual(mois[0].total, 0);
+  assert.strictEqual(mois[1].total, 60000);
+  assert.strictEqual(mois[2].total, TRANSACTIONS_DEMO.filter((t) => t.date.startsWith("2026-10")).reduce((s, t) => s + t.montant, 0));
+  const rep = repartitionPaiements(TRANSACTIONS_DEMO);
+  assert.strictEqual(rep.parPack.get("premium")?.nombre, 4);
+  assert.strictEqual(rep.parPeriodicite.get("annuel")?.nombre, 2);
+  assert.strictEqual(rep.parMoyen.get("orange")?.montant, 459000 + 45000 + 45000);
+});
+
+test("statistiques formations : ventes, revenus au prix catalogue, classement", () => {
+  const s = statistiquesFormations(VENTES_FORMATIONS_DEMO);
+  assert.strictEqual(s.ventes, 8);
+  assert.strictEqual(s.revenus, 7900 * 3 + 5900 * 2 + 6900 + 9900 + 4900);
+  assert.strictEqual(s.parFormation.get("hygiene-irreprochable"), 3);
+  assert.strictEqual(statistiquesFormations([]).revenus, 0);
 });

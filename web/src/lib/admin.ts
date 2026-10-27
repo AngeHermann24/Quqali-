@@ -1,11 +1,12 @@
 import type { Secteur } from "./data";
 import { scoreGlobal } from "./scores.ts";
 import type { Scores } from "./scores";
-import type { ConfigTarifs, Transaction } from "./abonnement";
+import type { ConfigTarifs, MoyenPaiement, Transaction } from "./abonnement";
 import { etatAbonnement } from "./abonnement.ts";
 import type { AvisClient } from "./avis";
 import type { Etablissement } from "./data";
 import type { Dossier, DossierPartenaire, StatutDossier } from "./espace";
+import { FORMATIONS } from "./formations.ts";
 import { type Intervenant, type LienAccompagnement, agentsEligibles } from "./regles.ts";
 
 /* ---------- Gestion des établissements (suspension, retrait de badge) ---------- */
@@ -131,6 +132,69 @@ export function statistiquesGlobales(entree: {
     revenusTotal: reussies.reduce((s, t) => s + t.montant, 0),
     revenusMois: reussies.filter((t) => t.date.startsWith(mois)).reduce((s, t) => s + t.montant, 0),
   };
+}
+
+/* ---------- Statistiques détaillées (page /admin/statistiques) ---------- */
+
+const MOIS_COURTS = ["Janv", "Févr", "Mars", "Avr", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"];
+
+export interface MoisRevenu {
+  /** Clé « AAAA-MM ». */
+  mois: string;
+  /** Étiquette courte, ex. « Oct 26 ». */
+  label: string;
+  total: number;
+}
+
+/** Revenus réussis regroupés sur les `nb` derniers mois glissants (mois courant inclus). */
+export function revenusParMois(transactions: Transaction[], aujourdhui: string, nb = 6): MoisRevenu[] {
+  const [annee, mois] = aujourdhui.split("-").map(Number);
+  const liste: MoisRevenu[] = [];
+  for (let i = nb - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(annee, mois - 1 - i, 1));
+    liste.push({ mois: d.toISOString().slice(0, 7), label: `${MOIS_COURTS[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`, total: 0 });
+  }
+  for (const t of transactions) {
+    if (t.statut !== "reussi") continue;
+    const cible = liste.find((m) => m.mois === t.date.slice(0, 7));
+    if (cible) cible.total += t.montant;
+  }
+  return liste;
+}
+
+/** Répartition des paiements réussis : par pack, par périodicité et par moyen de paiement. */
+export function repartitionPaiements(transactions: Transaction[]) {
+  const reussies = transactions.filter((t) => t.statut === "reussi");
+  const groupe = <K extends string>(cle: (t: Transaction) => K) => {
+    const out = new Map<K, { nombre: number; montant: number }>();
+    for (const t of reussies) {
+      const k = cle(t);
+      const e = out.get(k) ?? { nombre: 0, montant: 0 };
+      e.nombre++;
+      e.montant += t.montant;
+      out.set(k, e);
+    }
+    return out;
+  };
+  return {
+    parPack: groupe((t) => t.pack),
+    parPeriodicite: groupe((t) => t.periodicite),
+    parMoyen: groupe((t) => t.moyen),
+  };
+}
+
+/** Vente d'une formation payante (capsules vidéo de l'espace pro). */
+export interface VenteFormation {
+  formationId: string;
+  date: string;
+  moyen: MoyenPaiement;
+}
+
+export function statistiquesFormations(ventes: VenteFormation[]) {
+  const parFormation = new Map<string, number>();
+  for (const v of ventes) parFormation.set(v.formationId, (parFormation.get(v.formationId) ?? 0) + 1);
+  const revenus = ventes.reduce((s, v) => s + (FORMATIONS.find((f) => f.id === v.formationId)?.prix ?? 0), 0);
+  return { ventes: ventes.length, revenus, parFormation };
 }
 
 /* ---------- Données de démonstration ---------- */
@@ -302,4 +366,16 @@ export const TRANSACTIONS_DEMO: Transaction[] = [
   tx("tx-demo-6", 6, "2026-10-19", "basique", "mensuel", 15000, "wave"),
   tx("tx-demo-7", 7, "2026-09-15", "premium", "mensuel", 45000, "orange"),
   tx("tx-demo-8", 8, "2026-09-22", "basique", "mensuel", 15000, "mtn"),
+];
+
+/** Ventes de formations de démonstration (les achats réels du dossier s'y ajoutent). */
+export const VENTES_FORMATIONS_DEMO: VenteFormation[] = [
+  { formationId: "hygiene-irreprochable", date: "2026-10-06T09:00:00.000Z", moyen: "orange" },
+  { formationId: "art-de-l-accueil", date: "2026-10-09T14:20:00.000Z", moyen: "wave" },
+  { formationId: "hygiene-irreprochable", date: "2026-10-11T11:45:00.000Z", moyen: "mtn" },
+  { formationId: "reussir-son-audit", date: "2026-10-14T08:30:00.000Z", moyen: "orange" },
+  { formationId: "gouvernance-conformite", date: "2026-10-18T16:10:00.000Z", moyen: "carte" },
+  { formationId: "art-de-l-accueil", date: "2026-10-19T10:00:00.000Z", moyen: "wave" },
+  { formationId: "presentation-personnel", date: "2026-10-20T13:25:00.000Z", moyen: "orange" },
+  { formationId: "hygiene-irreprochable", date: "2026-10-21T09:55:00.000Z", moyen: "mtn" },
 ];

@@ -3,8 +3,9 @@
 import { Trophy } from "lucide-react";
 import { CLES, type Dossier } from "@/lib/espace";
 import { useStockage } from "@/lib/stockage";
-import { Chargement, EspaceHeader, Pastille } from "@/components/espace/ui";
+import { Chargement } from "@/components/espace/ui";
 import { AwardsView } from "@/components/awards/awards-view";
+import { EntetePro, StatusPillPro } from "@/components/pro/ui";
 
 const SEUIL_NOMINATION = 85;
 
@@ -17,23 +18,18 @@ export function AwardsPro() {
 
   return (
     <>
-      <EspaceHeader
-        role="Awards Qualité+"
-        titre="La cérémonie de l'année"
-        sousTitre="Classement : 30 % avis clients · 70 % note des évaluateurs"
-        actions={<Pastille ton={nomine ? "succes" : "neutre"}>{dossier?.audit ? (nomine ? "Nominé" : "Non nominé") : "Non éligible"}</Pastille>}
-      />
-      <div className="container-page max-w-5xl space-y-6 py-6">
-        <div className="card border-amber-200 bg-amber-50/60 p-5">
-          <p className="flex items-center gap-2 font-semibold text-ink">
-            <Trophy className="size-5 text-amber-500" aria-hidden />
+      <EntetePro titre="Awards Qualité+" action={dossier?.audit && <StatusPillPro statut={nomine ? "confirmee" : "annulee"} label={nomine ? "Nominé" : "Non nominé"} />} />
+      <div className="space-y-4 px-5 pb-6">
+        <div className="rounded-3xl border border-or/30 bg-or/10 p-4">
+          <p className="flex items-start gap-2 text-sm font-bold text-ink">
+            <Trophy className="mt-0.5 size-5 shrink-0 text-or" aria-hidden />
             {dossier?.audit
               ? nomine
                 ? `Votre note d'évaluateurs (${Math.round(note)} %) vous place parmi les nominés de l'année.`
                 : `Avec ${Math.round(note)} % d'évaluateurs, visez ${SEUIL_NOMINATION} % et plus pour être nominé.`
               : "Seuls les établissements certifiés participent aux Awards."}
           </p>
-          <p className="mt-1 text-sm text-muted">Les avis de vos clients comptent pour 30 % — encouragez-les à laisser un avis après leur visite.</p>
+          <p className="mt-1.5 text-xs text-muted">Classement : 30 % avis clients · 70 % note des évaluateurs. Les avis de vos clients comptent — encouragez-les à laisser un avis après leur visite.</p>
         </div>
         <AwardsView sansLiens />
       </div>

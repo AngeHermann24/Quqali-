@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
-import { Building2, CalendarDays, CircleHelp, FileText, Footprints, LayoutDashboard, MessageSquareText, MoreHorizontal, ShieldCheck } from "lucide-react";
+import { Bell, Building2, CalendarDays, CircleHelp, FileText, Footprints, LayoutDashboard, MessageSquareText, MoreHorizontal } from "lucide-react";
 import { CLES } from "@/lib/espace";
 import { cn } from "@/lib/site";
 import { useStockage } from "@/lib/stockage";
 import type { ComptePro } from "@/lib/pro-demo";
 import type { Dossier } from "@/lib/espace";
+import { estPublie } from "@/lib/pro-service";
 import { Chargement } from "@/components/espace/ui";
-import { Logo } from "@/components/logo";
+import { LogoPro } from "@/components/pro/ui";
 
 /** Pages accessibles sans compte établissement. */
 const PUBLIQUES = ["/pro/connexion", "/pro/onboarding"];
@@ -23,10 +24,10 @@ const NAV_AVANT = [
 ];
 
 const NAV_APRES = [
-  { href: "/pro", label: "Accueil", Icon: LayoutDashboard, exact: true },
+  { href: "/pro", label: "Tableau de bord", Icon: LayoutDashboard, exact: true },
   { href: "/pro/fiche", label: "Ma fiche", Icon: FileText },
   { href: "/pro/avis", label: "Avis", Icon: MessageSquareText },
-  { href: "/pro/reservations", label: "Réservas.", Icon: CalendarDays },
+  { href: "/pro/reservations", label: "Réservations", Icon: CalendarDays },
   { href: "/pro/plus", label: "Plus", Icon: MoreHorizontal },
 ];
 
@@ -35,39 +36,43 @@ export function ProChrome({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [compte] = useStockage<ComptePro>(CLES.comptePro);
   const [dossier] = useStockage<Dossier>(CLES.dossier);
+  const [sombre] = useStockage<boolean>(CLES.sombrePro);
 
   const publique = PUBLIQUES.includes(pathname);
   useEffect(() => {
     if (!publique && compte === null) router.replace("/pro/connexion");
   }, [publique, compte, router]);
 
-  if (publique) return <>{children}</>;
+  if (publique) {
+    return <div className="mx-auto min-h-dvh w-full max-w-[430px] bg-white shadow-flottant sm:border-x sm:border-line">{children}</div>;
+  }
   if (compte === undefined || compte === null) return <Chargement />;
 
-  const publie = dossier?.statut === "admis";
+  const publie = estPublie(dossier);
   const onglets = publie ? NAV_APRES : NAV_AVANT;
 
   return (
-    <>
-      <header className="sticky top-0 z-50 bg-primary text-white">
-        <div className="container-page flex h-14 items-center justify-between gap-3">
-          <Link href={publie ? "/pro" : "/pro/parcours"} className="flex items-center gap-2" aria-label="Qualité+ Pro">
-            <Logo light />
-            <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">Pro</span>
+    <div className={cn("mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-surface shadow-flottant sm:border-x sm:border-line", sombre && "pro-sombre")}>
+      {/* En-tête : logo Pro + notifications */}
+      <header className="sticky top-0 z-50 flex h-14 items-center justify-between bg-white px-5 shadow-card">
+        <Link href={publie ? "/pro" : "/pro/parcours"} aria-label="Qualité+ Pro" className="rounded-lg">
+          <LogoPro imgClassName="h-7" />
+        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/pro/notifications" aria-label="Notifications" className="relative grid size-10 place-items-center rounded-full border border-line bg-white transition active:scale-90">
+            <Bell className="size-5 text-ink" aria-hidden />
           </Link>
-          {dossier && (
-            <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold">
-              <ShieldCheck className="size-4 shrink-0 text-[#7ee2a4]" aria-hidden />
-              <span className="truncate">{dossier.nom}</span>
-            </span>
-          )}
+          <Link href="/pro/profil" aria-label="Profil" className="grid size-10 place-items-center rounded-full bg-primary font-display text-sm font-bold text-white">
+            {dossier?.nom?.[0] ?? "Q"}
+          </Link>
         </div>
       </header>
 
-      {children}
+      <main className="flex-1 pb-24">{children}</main>
 
-      <nav aria-label="Navigation établissement" className="verre fixed inset-x-4 bottom-3 z-50 mx-auto max-w-md rounded-full shadow-flottant">
-        <div className="flex items-center justify-around px-2 py-1.5">
+      {/* Barre du bas — design plat, onglet actif bleu */}
+      <nav aria-label="Navigation établissement" className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[430px] border-t border-line bg-white">
+        <div className="flex items-stretch justify-around px-1 pt-1.5 pb-[max(0.4rem,env(safe-area-inset-bottom))]">
           {onglets.map(({ href, label, Icon, ...rest }) => {
             const exact = "exact" in rest && rest.exact;
             const actif = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -76,16 +81,15 @@ export function ProChrome({ children }: { children: ReactNode }) {
                 key={href}
                 href={href}
                 aria-current={actif ? "page" : undefined}
-                className={cn("relative flex flex-col items-center gap-0.5 rounded-full px-3 py-1.5 transition-transform duration-200", actif ? "scale-110 text-primary" : "text-muted active:scale-95")}
+                className={cn("flex min-w-14 flex-col items-center gap-0.5 rounded-xl px-1.5 py-1.5 transition", actif ? "text-bleu" : "text-muted active:scale-95")}
               >
                 <Icon className="size-5" strokeWidth={actif ? 2.4 : 2} aria-hidden />
-                <span className="text-[10px] font-bold">{label}</span>
-                {actif && <span className="absolute -bottom-0.5 size-1.5 rounded-full bg-success" aria-hidden />}
+                <span className={cn("max-w-full truncate text-[10px]", actif ? "font-bold" : "font-semibold")}>{label}</span>
               </Link>
             );
           })}
         </div>
       </nav>
-    </>
+    </div>
   );
 }

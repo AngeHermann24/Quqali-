@@ -13,7 +13,7 @@ export interface ConfigTarifs {
 }
 
 export const CONFIG_DEFAUT: ConfigTarifs = {
-  prix: { basique: 15000, premium: 45000 },
+  prix: { basique: 0, premium: 29900 },
   remiseAnnuelle: 15,
   delaiGrace: 7,
   rappels: [15, 7, 1],

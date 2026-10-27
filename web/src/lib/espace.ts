@@ -15,6 +15,10 @@ export const CLES = {
   compte: "qualite-compte-client",
   notificationsVues: "qualite-notifications-vues",
   comptePro: "qualite-compte-pro",
+  notificationsProVues: "qualite-notifications-pro-vues",
+  equipePro: "qualite-equipe-pro",
+  sombrePro: "qualite-pro-sombre",
+  formationsPro: "qualite-formations-pro",
   avis: "qualite-avis",
   favoris: "qualite-favoris",
   gestion: "qualite-gestion-etablissements",
@@ -74,6 +78,9 @@ export interface Dossier {
   adresse: string;
   coords?: [number, number];
   responsable: { nom: string; fonction: string; telephone: string; email: string };
+  horaires?: string;
+  capacites?: { chambres?: number; couverts?: number; lits?: number; specialites?: string };
+  prepaAudit?: Record<string, boolean>;
   documents: DocumentJoint[];
   parcours: "A" | "B";
   statut: StatutDossier;
@@ -84,6 +91,10 @@ export interface Dossier {
   abonnement?: Abonnement;
   transactions?: Transaction[];
   visite3d?: string;
+  /** Services affichés sur la fiche (puces sélectionnées par l'établissement). */
+  services?: string[];
+  /** Journal des modifications de la fiche (après publication). */
+  modifications?: { date: string; champ: string }[];
   reponsesAvis: Record<string, string>;
   accompagnement?: Accompagnement;
 }
@@ -162,11 +173,28 @@ export const auditSimule = (resultat: "admis" | "refuse") => {
   return { date: maintenant(), scores, global: scoreGlobal(scores) };
 };
 
-export const AVIS_DEMO = [
-  { id: "avis-1", auteur: "Adjoua K.", date: "2026-10-12", note: 5, commentaire: "Accueil chaleureux et locaux impeccables. Le badge m'a rassurée." },
-  { id: "avis-2", auteur: "Moussa D.", date: "2026-10-08", note: 4, commentaire: "Très bon service, un peu d'attente à l'arrivée." },
-  { id: "avis-3", auteur: "Linda B.", date: "2026-10-02", note: 4, commentaire: "Personnel bien présenté et souriant. Je reviendrai." },
-];
+/** Avis clients de démonstration — dates recalculées à chaque chargement, jamais en dur. */
+export interface AvisDemo {
+  id: string;
+  auteur: string;
+  date: string;
+  note: number;
+  commentaire: string;
+  criteres?: Record<string, number>;
+}
+export function avisDemo(): AvisDemo[] {
+  const j = (n: number) => ajouterJours(maintenant(), -n).slice(0, 10);
+  return [
+    { id: "avis-1", auteur: "Adjoua K.", date: j(2), note: 5, commentaire: "Accueil chaleureux et locaux impeccables. Le badge m'a rassurée.", criteres: { hygiene: 5, accueil: 5, presentation: 4 } },
+    { id: "avis-2", auteur: "Moussa D.", date: j(6), note: 4, commentaire: "Très bon service, un peu d'attente à l'arrivée.", criteres: { hygiene: 4, accueil: 3, presentation: 4 } },
+    { id: "avis-3", auteur: "Linda B.", date: j(12), note: 4, commentaire: "Personnel bien présenté et souriant. Je reviendrai.", criteres: { hygiene: 4, accueil: 4, presentation: 5 } },
+    { id: "avis-4", auteur: "Yao B.", date: j(16), note: 2, commentaire: "Réservation correcte mais l'accueil téléphonique peut mieux faire.", criteres: { hygiene: 3, accueil: 2, presentation: 3 } },
+    { id: "avis-5", auteur: "Aminata S.", date: j(21), note: 3, commentaire: "Prestation moyenne : propreté au rendez-vous, attente un peu longue.", criteres: { hygiene: 4, accueil: 2, presentation: 3 } },
+    { id: "avis-6", auteur: "Koffi N.", date: j(28), note: 5, commentaire: "Expérience impeccable de bout en bout, personnel aux petits soins.", criteres: { hygiene: 5, accueil: 5, presentation: 5 } },
+  ];
+}
+/** @deprecated utiliser avisDemo() — conservé pour l'ancien écran de suivi. */
+export const AVIS_DEMO = avisDemo();
 
 export type StatutPartenaire = "soumis" | "entretien" | "valide" | "refuse";
 

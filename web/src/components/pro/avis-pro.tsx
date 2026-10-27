@@ -1,136 +1,213 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { Flag, MessageSquareText, Send } from "lucide-react";
-import { AVIS_DEMO, CLES, type Dossier } from "@/lib/espace";
-import { type AvisClient, ROLES_PERSONNEL } from "@/lib/avis";
-import { formatDate } from "@/lib/format";
-import { cn } from "@/lib/site";
+import { MessageSquareText, Send, TrendingUp } from "lucide-react";
+import { CLES, type Dossier, avisDemo } from "@/lib/espace";
+import { type AvisClient, type StatutAvis } from "@/lib/avis";
+import { CRITERES } from "@/lib/data";
+import { aAcces } from "@/lib/pro-service";
 import { useStockage } from "@/lib/stockage";
-import { Stars } from "@/components/ui";
-import { Bloc, Chargement, EspaceHeader, Pastille } from "@/components/espace/ui";
+import { useHorloge } from "@/lib/use-config";
+import { Chargement } from "@/components/espace/ui";
+import { ChipPro, EntetePro, EtatVidePro, LockedFeature, PanneauBas, ProgressBarPro, ReviewCardPro, TabsPro, ToastPro } from "@/components/pro/ui";
+
+type AvisAff = { id: string; auteur: string; date: string; note: number; commentaire: string; statut: StatutAvis; criteres?: Record<string, number> };
+type Onglet = "tous" | "positifs" | "neutres" | "negatifs";
+const PAGE = 4;
+
+const ilYA = (iso: string, ref: string) => {
+  const j = Math.max(0, Math.round((new Date(ref).getTime() - new Date(iso).getTime()) / 86400000));
+  return j === 0 ? "Aujourd'hui" : j === 1 ? "Hier" : `Il y a ${j} jours`;
+};
 
 export function AvisPro() {
   const [dossier, setDossier] = useStockage<Dossier>(CLES.dossier);
   const [avisTous, setAvisTous] = useStockage<Record<string, AvisClient[]>>(CLES.avis);
-  const [filtre, setFiltre] = useState(0);
-  if (dossier === undefined || avisTous === undefined) return <Chargement />;
+  const { aujourdhui } = useHorloge();
+  const [onglet, setOnglet] = useState<Onglet>("tous");
+  const [sansReponseSeulement, setSansReponseSeulement] = useState(false);
+  const [periode, setPeriode] = useState<0 | 7 | 30>(0);
+  const [affiches, setAffiches] = useState(PAGE);
+  const [reponsePour, setReponsePour] = useState<string | null>(null);
+  const [brouillon, setBrouillon] = useState("");
+  const [signalePour, setSignalePour] = useState<string | null>(null);
+  const [signales, setSignales] = useState<string[]>([]);
+  const [motif, setMotif] = useState("Avis injurieux ou diffamatoire");
+  const [toast, setToast] = useState("");
+
+  if (dossier === undefined || avisTous === undefined || !aujourdhui) return <Chargement />;
 
   if (!dossier)
     return (
-      <div className="container-page py-8">
-        <div className="card mx-auto max-w-lg p-8 text-center">
-          <MessageSquareText className="mx-auto size-12 text-primary" aria-hidden />
-          <h1 className="mt-4 font-display text-2xl font-bold text-ink">Aucun avis pour l&apos;instant</h1>
-          <p className="mt-2 text-sm text-muted">Les avis vérifiés des usagers apparaîtront ici une fois votre fiche publiée.</p>
-        </div>
+      <div className="px-5 py-8">
+        <EtatVidePro icone={<MessageSquareText className="size-8" aria-hidden />} titre="Aucun avis pour l'instant" detail="Les avis vérifiés des usagers apparaîtront ici une fois votre fiche publiée." />
       </div>
     );
 
-  const recus = avisTous?.[dossier.id] ?? [];
-  const tous = [
-    ...recus.map((a) => ({ id: a.id, auteur: a.auteur, date: a.date, note: a.note, commentaire: a.commentaire, statut: a.statut, personnel: a.personnel })),
-    ...AVIS_DEMO.map((a) => ({ ...a, statut: "publie" as const, personnel: undefined })),
-  ];
-  const vus = filtre ? tous.filter((a) => a.note === filtre) : tous;
+  const premium = aAcces(dossier, "rapportIa");
+  const tous: AvisAff[] = [
+    ...(avisTous?.[dossier.id] ?? []),
+    ...avisDemo().map((a) => ({ ...a, statut: "publie" as const })),
+  ].map((a) => (signales.includes(a.id) ? { ...a, statut: "signale" as const } : a));
+
+  const positifs = tous.filter((a) => a.note >= 4);
+  const neutres = tous.filter((a) => a.note === 3);
+  const negatifs = tous.filter((a) => a.note <= 2);
+  const parOnglet = onglet === "positifs" ? positifs : onglet === "neutres" ? neutres : onglet === "negatifs" ? negatifs : tous;
+  const filtres = parOnglet.filter((a) => {
+    if (sansReponseSeulement && dossier.reponsesAvis[a.id]) return false;
+    if (periode) {
+      const j = Math.round((new Date(aujourdhui.slice(0, 10)).getTime() - new Date(a.date).getTime()) / 86400000);
+      if (j > periode) return false;
+    }
+    return true;
+  });
+  const vus = filtres.slice(0, affiches);
   const moyenne = tous.length ? tous.reduce((s, a) => s + a.note, 0) / tous.length : 0;
+
+  // Thèmes récurrents : moyenne des notes par critère (sur 5).
+  const themes = CRITERES.slice(0, 3)
+    .map((c) => {
+      const notes = tous.map((a) => a.criteres?.[c.key]).filter((n): n is number => n !== undefined);
+      return { label: c.label, moyenne: notes.length ? notes.reduce((s, n) => s + n, 0) / notes.length : 0 };
+    })
+    .filter((t) => t.moyenne > 0);
+
+  const publier = () => {
+    if (!reponsePour || brouillon.trim().length < 4) return;
+    setDossier({ ...dossier, reponsesAvis: { ...dossier.reponsesAvis, [reponsePour]: brouillon.trim().slice(0, 500) } });
+    setReponsePour(null);
+    setBrouillon("");
+    setToast("Réponse envoyée — publiée après relecture.");
+  };
+
+  const signaler = () => {
+    if (!signalePour) return;
+    setAvisTous((p) => ({ ...p, [dossier.id]: (p?.[dossier.id] ?? []).map((x) => (x.id === signalePour ? { ...x, statut: "signale" } : x)) }));
+    setSignales((p) => [...p, signalePour]);
+    setSignalePour(null);
+    setToast("Avis signalé — examiné par l'équipe.");
+  };
 
   return (
     <>
-      <EspaceHeader role="Avis" titre="Avis et témoignages" sousTitre={`${tous.length} avis vérifiés · moyenne ${moyenne.toFixed(1)}/5`} />
-      <div className="container-page max-w-2xl space-y-5 py-6">
-        <div className="flex flex-wrap gap-2">
-          {[0, 5, 4, 3, 2, 1].map((n) => (
-            <button key={n} type="button" onClick={() => setFiltre(n)} className={cn("chip transition", filtre === n ? "bg-primary text-white" : "bg-white text-ink")}>
-              {n === 0 ? "Tous" : `${n} ★`} {n > 0 && `(${tous.filter((a) => a.note === n).length})`}
-            </button>
-          ))}
+      <EntetePro titre="Avis clients" />
+      <div className="px-5 pb-6">
+        <p className="text-sm text-muted">
+          Moyenne <strong className="text-ink">{moyenne.toFixed(1).replace(".", ",")}/5</strong> · {tous.length} avis vérifiés
+        </p>
+
+        <TabsPro
+          className="mt-3.5"
+          actif={onglet}
+          onChange={(o) => { setOnglet(o); setAffiches(PAGE); }}
+          onglets={[
+            { id: "tous", label: `Tous (${tous.length})` },
+            { id: "positifs", label: `Positifs (${positifs.length})` },
+            { id: "neutres", label: `Neutres (${neutres.length})` },
+            { id: "negatifs", label: `Négatifs (${negatifs.length})` },
+          ]}
+        />
+
+        {/* Filtres */}
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <ChipPro actif={sansReponseSeulement} onClick={() => setSansReponseSeulement(!sansReponseSeulement)}>Sans réponse</ChipPro>
+          <ChipPro actif={periode === 7} onClick={() => setPeriode(periode === 7 ? 0 : 7)}>7 derniers jours</ChipPro>
+          <ChipPro actif={periode === 30} onClick={() => setPeriode(periode === 30 ? 0 : 30)}>30 derniers jours</ChipPro>
         </div>
 
-        <ul className="space-y-4">
+        {/* Liste */}
+        <ul className="mt-4 space-y-3.5">
           {vus.map((a) => (
-            <li key={a.id} className="card p-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold text-ink">{a.auteur}</p>
-                <div className="flex items-center gap-2">
-                  <Stars value={a.note} />
-                  {a.statut === "signale" && <Pastille ton="alerte">Signalé</Pastille>}
-                </div>
-              </div>
-              {a.personnel && (
-                <p className="mt-0.5 text-xs text-muted">
-                  Personnel noté :{" "}
-                  {Object.entries(a.personnel)
-                    .map(([role, note]) => `${ROLES_PERSONNEL[dossier.secteur]?.find((r) => r.id === role)?.label ?? role} : ${note}/5`)
-                    .join(" · ")}
-                </p>
-              )}
-              <p className="mt-1.5 text-sm text-muted">{a.commentaire}</p>
-              <p className="mt-1 text-xs text-muted">{formatDate(a.date)}</p>
-
-              <ReponseAvis
-                texte={dossier.reponsesAvis[a.id]}
-                onSauver={(texte) => setDossier({ ...dossier, reponsesAvis: { ...dossier.reponsesAvis, [a.id]: texte } })}
+            <li key={a.id}>
+              <ReviewCardPro
+                nom={a.auteur}
+                ilYA={ilYA(a.date, aujourdhui.slice(0, 10))}
+                note={a.note}
+                texte={a.commentaire}
+                verifie={a.statut !== "signale"}
+                criteres={
+                  a.criteres
+                    ? Object.entries(a.criteres).map(([k, v]) => ({ label: CRITERES.find((c) => c.key === k)?.label ?? k, valeur: v }))
+                    : undefined
+                }
+                reponse={dossier.reponsesAvis[a.id]}
+                onRepondre={() => { setReponsePour(a.id); setBrouillon(dossier.reponsesAvis[a.id] ?? ""); }}
+                onSignaler={a.statut === "publie" ? () => setSignalePour(a.id) : undefined}
               />
-              {a.statut === "publie" && a.id.startsWith("avis-") === false && (
-                <button
-                  type="button"
-                  className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-red-600"
-                  onClick={() => setAvisTous((p) => ({ ...p, [dossier.id]: (p?.[dossier.id] ?? []).map((x) => (x.id === a.id ? { ...x, statut: "signale" } : x)) }))}
-                >
-                  <Flag className="size-3.5" aria-hidden /> Signaler un avis abusif
-                </button>
-              )}
+              {a.statut === "signale" && <p className="mt-1.5 text-[11px] font-semibold text-or">{"Signalé — en cours d'examen par l'équipe."}</p>}
             </li>
           ))}
-          {vus.length === 0 && <li className="card p-6 text-center text-sm text-muted">Aucun avis avec cette note.</li>}
+          {vus.length === 0 && <li><EtatVidePro icone={<MessageSquareText className="size-8" aria-hidden />} titre="Aucun avis" detail="Aucun avis ne correspond à ces filtres." /></li>}
         </ul>
 
-        <Bloc>
-          <p className="text-sm text-muted">
-            Les réponses sont publiques et visibles sur votre fiche. Un avis signalé passe par la modération de nos équipes.{" "}
-            <Link href="/pro/aide" className="font-semibold text-primary">En savoir plus</Link>
-          </p>
-        </Bloc>
+        {filtres.length > affiches && (
+          <button type="button" onClick={() => setAffiches(affiches + PAGE)} className="mt-4 h-11 w-full rounded-2xl border-2 border-bleu font-bold text-bleu transition active:scale-[0.98]">
+            Voir tous les avis ({filtres.length - affiches} restants)
+          </button>
+        )}
+
+        {/* Thèmes récurrents — Premium */}
+        <div className="mt-6">
+          {premium ? (
+            <div className="rounded-3xl border border-line bg-white p-4 shadow-card">
+              <p className="flex items-center gap-2 text-sm font-bold text-ink"><TrendingUp className="size-4 text-primary" aria-hidden /> Thèmes récurrents</p>
+              <p className="text-xs text-muted">Moyenne des notes détaillées par critère.</p>
+              <ul className="mt-3 space-y-3">
+                {themes.map((t) => (
+                  <li key={t.label}>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-ink">{t.label}</span>
+                      <span className="font-bold text-primary">{t.moyenne.toFixed(1).replace(".", ",")}/5</span>
+                    </div>
+                    <ProgressBarPro valeur={(t.moyenne / 5) * 100} className="mt-1.5" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <LockedFeature titre="Thèmes récurrents" detail="Analyse des points forts et points faibles de vos avis — réservée au pack Premium." />
+          )}
+        </div>
       </div>
+
+      {/* Répondre */}
+      <PanneauBas ouvert={!!reponsePour} titre="Répondre publiquement" onFermer={() => setReponsePour(null)}>
+        <textarea
+          rows={4}
+          maxLength={500}
+          className="w-full resize-none rounded-xl border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-bleu"
+          placeholder="Votre réponse publique…"
+          value={brouillon}
+          onChange={(e) => setBrouillon(e.target.value)}
+          aria-label="Réponse publique (500 caractères)"
+        />
+        <div className="mt-1 flex items-center justify-between text-[11px] text-muted">
+          <span>Relue par nos équipes avant publication.</span>
+          <span>{brouillon.length}/500</span>
+        </div>
+        <button type="button" onClick={publier} disabled={brouillon.trim().length < 4} className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-success font-bold text-white transition active:scale-[0.98] disabled:bg-line disabled:text-muted">
+          <Send className="size-4" aria-hidden /> Publier ma réponse
+        </button>
+      </PanneauBas>
+
+      {/* Signaler */}
+      <PanneauBas ouvert={!!signalePour} titre="Signaler cet avis" onFermer={() => setSignalePour(null)}>
+        <p className="text-sm text-muted">Le motif est examiné par l&apos;équipe Qualité+ — l&apos;avis reste visible pendant l&apos;examen.</p>
+        <div className="mt-3 space-y-2">
+          {["Avis injurieux ou diffamatoire", "Faux avis — pas de visite réelle", "Conflit d'intérêts ou concurrent", "Contenu hors sujet"].map((m) => (
+            <label key={m} className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 text-sm font-semibold text-ink has-checked:border-bleu has-checked:bg-primary-soft/50">
+              <input type="radio" name="motif" checked={motif === m} onChange={() => setMotif(m)} className="accent-bleu" />
+              {m}
+            </label>
+          ))}
+        </div>
+        <button type="button" onClick={signaler} className="mt-4 h-12 w-full rounded-2xl bg-danger font-bold text-white transition active:scale-[0.98]">
+          Envoyer le signalement
+        </button>
+      </PanneauBas>
+
+      <ToastPro visible={!!toast} message={toast} />
     </>
-  );
-}
-
-function ReponseAvis({ texte, onSauver }: { texte?: string; onSauver: (t: string) => void }) {
-  const [edition, setEdition] = useState(false);
-  const [brouillon, setBrouillon] = useState("");
-
-  if (texte && !edition)
-    return (
-      <div className="mt-3 rounded-xl bg-surface p-3">
-        <p className="text-xs font-semibold text-primary">Votre réponse</p>
-        <p className="mt-1 text-sm text-ink">{texte}</p>
-        <button type="button" className="mt-1.5 text-xs font-semibold text-muted" onClick={() => { setBrouillon(texte); setEdition(true); }}>
-          Modifier
-        </button>
-      </div>
-    );
-
-  if (!edition)
-    return (
-      <button type="button" className="mt-2.5 text-xs font-semibold text-primary" onClick={() => setEdition(true)}>
-        Répondre publiquement
-      </button>
-    );
-
-  return (
-    <div className="mt-3 space-y-2">
-      <textarea className="input" rows={2} placeholder="Votre réponse publique…" value={brouillon} onChange={(e) => setBrouillon(e.target.value)} />
-      <div className="flex gap-2">
-        <button type="button" className="btn btn-primary px-4 py-2 text-xs" disabled={brouillon.trim().length < 4} onClick={() => { onSauver(brouillon.trim()); setEdition(false); }}>
-          <Send className="size-3.5" aria-hidden /> Publier
-        </button>
-        <button type="button" className="btn btn-outline px-4 py-2 text-xs" onClick={() => setEdition(false)}>
-          Annuler
-        </button>
-      </div>
-    </div>
   );
 }

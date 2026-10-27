@@ -1,33 +1,77 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowLeft, ArrowRight, Building2, KeyRound, Phone, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, Building2, Phone, ShieldCheck } from "lucide-react";
 import { CLES, maintenant } from "@/lib/espace";
 import { useStockage } from "@/lib/stockage";
 import { COMPTES_DEMO, nouveauComptePro } from "@/lib/pro-demo";
 import type { ComptePro } from "@/lib/pro-demo";
 import type { Dossier } from "@/lib/espace";
-import { Logo } from "@/components/logo";
 import { Chargement } from "@/components/espace/ui";
+import { LogoProCartouche } from "@/components/pro/ui";
 import { cn } from "@/lib/site";
 
-type Etape = "choix" | "tel" | "code" | "identite";
+type Mode = "connexion" | "inscription";
+const DELAI_RENVOI = 58;
 
+/** Écran 1 — Connexion / Inscription de l'app Pro (fond bleu, carte à onglets, SMS). */
 export function ConnexionPro() {
   const router = useRouter();
   const [compte, setCompte] = useStockage<ComptePro>(CLES.comptePro);
   const [, setDossier] = useStockage<Dossier>(CLES.dossier);
 
-  const [etape, setEtape] = useState<Etape>("choix");
+  const [mode, setMode] = useState<Mode>("inscription");
   const [tel, setTel] = useState("");
   const [code, setCode] = useState("");
   const [codeEnvoye, setCodeEnvoye] = useState("");
   const [responsable, setResponsable] = useState("");
-  const [pin, setPin] = useState("");
+  const [renvoi, setRenvoi] = useState(0);
   const [erreur, setErreur] = useState("");
+  const [demos, setDemos] = useState(false);
+
+  useEffect(() => {
+    if (renvoi <= 0) return;
+    const t = setTimeout(() => setRenvoi(renvoi - 1), 1000);
+    return () => clearTimeout(t);
+  }, [renvoi]);
+
+  useEffect(() => {
+    if (compte) router.replace("/pro");
+  }, [compte, router]);
 
   if (compte === undefined) return <Chargement />;
+
+  const telOk = tel.replace(/\D/g, "").length >= 10;
+  const codeOk = code.length === 4;
+  const pret = telOk && codeOk && (mode === "connexion" || responsable.trim().length >= 2);
+
+  const buzz = () => navigator.vibrate?.(10);
+
+  const envoyerCode = () => {
+    setCodeEnvoye(String(Math.floor(1000 + Math.random() * 9000)));
+    setCode("");
+    setErreur("");
+    setRenvoi(DELAI_RENVOI);
+  };
+
+  const soumettre = () => {
+    buzz();
+    if (!codeEnvoye) return setErreur("Touchez « Recevoir le code » pour obtenir votre SMS.");
+    if (code !== codeEnvoye) {
+      setErreur("Code incorrect, réessayez.");
+      setCode("");
+      return;
+    }
+    if (mode === "inscription") {
+      setCompte(nouveauComptePro(`+225 ${tel}`, responsable));
+      setDossier(null);
+      router.push("/pro/parcours");
+    } else {
+      setCompte({ tel: `+225 ${tel}`, responsable: responsable || "Gérant", role: "gerant", creeLe: maintenant() });
+      router.push("/pro");
+    }
+  };
 
   const entrerDemo = (demoId: string) => {
     const demo = COMPTES_DEMO.find((c) => c.id === demoId)!;
@@ -36,185 +80,153 @@ export function ConnexionPro() {
     router.push("/pro");
   };
 
-  const entrerNouveau = () => {
-    setCompte(nouveauComptePro(`+225 ${tel}`, responsable));
-    setDossier(null);
-    router.push("/pro/parcours");
-  };
-
-  const buzz = () => navigator.vibrate?.(10);
+  const mmss = `${String(Math.floor(renvoi / 60)).padStart(2, "0")}:${String(renvoi % 60).padStart(2, "0")}`;
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-10 pb-8">
-      <div className="flex items-center gap-2">
-        <Logo />
-        <span className="rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase">Pro</span>
+    <div className="flex min-h-dvh flex-col bg-gradient-to-b from-primary via-primary-dark to-nuit px-6 pt-14 pb-8">
+      <div className="flex flex-col items-center text-center [animation:monte_.5s_ease_both]">
+        <LogoProCartouche />
+        <h1 className="mt-8 font-display text-3xl font-extrabold text-white">Bienvenue&nbsp;!</h1>
+        <p className="mt-2 max-w-xs text-sm leading-relaxed text-white/75">Connectez-vous pour gérer votre établissement et votre certification.</p>
       </div>
 
-      {etape === "choix" && (
-        <div className="[animation:monte_.4s_ease_both] mt-8">
-          <h1 className="font-display text-3xl leading-tight font-extrabold text-ink">
-            Bienvenue sur votre espace <span className="text-primary">établissement</span>
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted">Certification, audit, abonnement, avis et réservations — tout se pilote ici.</p>
+      <div className="mt-8 rounded-3xl bg-white p-5 shadow-flottant [animation:monte_.5s_.15s_ease_both]">
+        {/* Onglets Connexion / Inscription */}
+        <div className="grid grid-cols-2 rounded-2xl bg-surface p-1" role="tablist">
+          {(["connexion", "inscription"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => {
+                setMode(m);
+                setErreur("");
+              }}
+              className={cn("h-10 rounded-xl text-sm font-bold transition", mode === m ? "bg-white text-primary shadow-card" : "text-muted")}
+            >
+              {m === "connexion" ? "Connexion" : "Inscription"}
+            </button>
+          ))}
+        </div>
 
-          <div className="mt-6 space-y-3">
-            <p className="text-[11px] font-bold tracking-wider text-muted uppercase">Comptes de démonstration</p>
+        <div className="mt-5 space-y-4">
+          <div>
+            <label htmlFor="tel-pro" className="label">
+              Numéro de téléphone
+            </label>
+            <div className="flex gap-2">
+              <span className="grid h-12 w-[4.5rem] shrink-0 place-items-center rounded-xl border border-line bg-surface text-sm font-bold text-ink">+225</span>
+              <input
+                id="tel-pro"
+                inputMode="tel"
+                autoFocus
+                placeholder="07 00 00 00 00"
+                value={tel}
+                onChange={(e) => setTel(e.target.value.replace(/[^\d ]/g, "").slice(0, 14))}
+                className="input h-12 flex-1 font-semibold"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <label htmlFor="code-pro" className="label">
+                Code SMS
+              </label>
+              <button type="button" onClick={envoyerCode} disabled={!telOk || renvoi > 0} className="text-xs font-bold text-bleu disabled:text-muted">
+                {codeEnvoye ? (renvoi > 0 ? `Renvoyer (${mmss})` : "Renvoyer le code") : "Recevoir le code"}
+              </button>
+            </div>
+            <input
+              id="code-pro"
+              inputMode="numeric"
+              placeholder="Entrer le code reçu"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value.replace(/\D/g, "").slice(0, 4));
+                setErreur("");
+              }}
+              className="input h-12 font-semibold tracking-widest"
+            />
+            {codeEnvoye && (
+              <p className="mt-1.5 rounded-lg bg-primary-soft px-2.5 py-1.5 text-[11px] text-ink">
+                SMS reçu — code Qualité+ Pro : <span className="font-display font-bold tracking-widest text-primary">{codeEnvoye}</span>{" "}
+                <span className="text-muted">(simulation)</span>
+              </p>
+            )}
+          </div>
+
+          {mode === "inscription" && (
+            <div>
+              <label htmlFor="resp-pro" className="label">
+                Nom du responsable
+              </label>
+              <input id="resp-pro" placeholder="Ex : Aya Koné" value={responsable} onChange={(e) => setResponsable(e.target.value)} className="input h-12" />
+            </div>
+          )}
+
+          {erreur && (
+            <p role="alert" className="rounded-xl bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
+              {erreur}
+            </p>
+          )}
+
+          <button type="button" disabled={!pret} onClick={soumettre} className="btn btn-success h-13 w-full text-base disabled:opacity-40">
+            <Phone className="size-4" aria-hidden /> {mode === "inscription" ? "Créer mon compte" : "Se connecter"}
+          </button>
+
+          <p className="text-center text-xs text-muted">
+            {mode === "inscription" ? (
+              <>
+                Déjà un compte ?{" "}
+                <button type="button" onClick={() => setMode("connexion")} className="font-bold text-bleu">
+                  Se connecter
+                </button>
+              </>
+            ) : (
+              <>
+                Pas encore de compte ?{" "}
+                <button type="button" onClick={() => setMode("inscription")} className="font-bold text-bleu">
+                  Créer mon compte
+                </button>
+              </>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Accès démonstration */}
+      <div className="mt-6 text-center [animation:monte_.5s_.3s_ease_both]">
+        <button type="button" onClick={() => setDemos((d) => !d)} className="text-xs font-semibold text-white/60 underline underline-offset-2">
+          {demos ? "Masquer la démonstration" : "Explorer avec un compte de démonstration"}
+        </button>
+        {demos && (
+          <div className="mt-3 space-y-2 text-left">
             {COMPTES_DEMO.map((c) => (
               <button
                 key={c.id}
                 type="button"
-                onClick={() => {
-                  buzz();
-                  entrerDemo(c.id);
-                }}
-                className="card flex w-full items-center gap-3 p-4 text-left transition active:scale-[0.98] hover:border-primary/40"
+                onClick={() => entrerDemo(c.id)}
+                className="flex w-full items-center gap-3 rounded-2xl bg-white/10 p-3 text-left backdrop-blur transition active:scale-[0.98]"
               >
-                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/15 text-white">
                   <Building2 className="size-5" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-semibold text-ink">{c.etablissement}</span>
-                  <span className="block text-xs text-muted">
-                    {c.secteur} · {c.situation}
-                  </span>
+                  <span className="block text-sm font-bold text-white">{c.etablissement}</span>
+                  <span className="block text-[11px] text-white/60">{c.situation}</span>
                 </span>
-                <ArrowRight className="size-4 shrink-0 text-muted" aria-hidden />
+                <ArrowRight className="size-4 shrink-0 text-white/60" aria-hidden />
               </button>
             ))}
           </div>
+        )}
+      </div>
 
-          <div className="mt-6 border-t border-line pt-5">
-            <p className="text-[11px] font-bold tracking-wider text-muted uppercase">Nouvel établissement</p>
-            <button
-              type="button"
-              onClick={() => {
-                buzz();
-                setEtape("tel");
-              }}
-              className="btn btn-primary mt-3 w-full"
-            >
-              Créer mon compte établissement
-            </button>
-          </div>
-        </div>
-      )}
-
-      {etape === "tel" && (
-        <div className="[animation:monte_.4s_ease_both] mt-8">
-          <h1 className="font-display text-3xl font-extrabold text-ink">Votre téléphone</h1>
-          <p className="mt-2 text-sm text-muted">Un code de vérification à 4 chiffres vous est envoyé par SMS.</p>
-          <label htmlFor="tel-pro" className="label mt-6">
-            Numéro de téléphone
-          </label>
-          <div className="flex gap-2">
-            <span className="grid h-12 w-20 shrink-0 place-items-center rounded-xl border border-line bg-surface font-bold text-ink">+225</span>
-            <input
-              id="tel-pro"
-              inputMode="tel"
-              autoFocus
-              placeholder="07 00 00 00 00"
-              value={tel}
-              onChange={(e) => setTel(e.target.value.replace(/[^\d ]/g, "").slice(0, 14))}
-              className="input h-12 flex-1 text-lg font-semibold"
-            />
-          </div>
-          <button
-            type="button"
-            disabled={tel.replace(/\D/g, "").length < 8}
-            onClick={() => {
-              setCodeEnvoye(String(Math.floor(1000 + Math.random() * 9000)));
-              setCode("");
-              setEtape("code");
-            }}
-            className="btn btn-primary mt-5 w-full disabled:opacity-40"
-          >
-            <Phone className="size-4" aria-hidden /> Recevoir le code
-          </button>
-          <Retour onClick={() => setEtape("choix")} />
-        </div>
-      )}
-
-      {etape === "code" && (
-        <div className="[animation:monte_.4s_ease_both] mt-8">
-          <h1 className="font-display text-3xl font-extrabold text-ink">Code de vérification</h1>
-          <p className="mt-2 text-sm text-muted">Envoyé au +225 {tel}</p>
-          <div className="mt-4 rounded-2xl border border-primary/20 bg-primary-soft/60 p-3 text-sm text-ink">
-            <span className="font-semibold">SMS reçu —</span> Votre code Qualité+ Pro : <span className="font-display text-lg font-bold tracking-widest text-primary">{codeEnvoye}</span>{" "}
-            <span className="text-xs text-muted">(simulation)</span>
-          </div>
-          <div className="mt-5 flex justify-center gap-3">
-            {[0, 1, 2, 3].map((i) => (
-              <span key={i} className={cn("grid size-14 place-items-center rounded-2xl border-2 font-display text-2xl font-bold", code[i] ? "border-primary bg-primary-soft text-primary" : "border-line bg-white text-muted")}>
-                {code[i] ?? "·"}
-              </span>
-            ))}
-          </div>
-          <input
-            aria-label="Code à 4 chiffres"
-            inputMode="numeric"
-            autoFocus
-            value={code}
-            onChange={(e) => {
-              const v = e.target.value.replace(/\D/g, "").slice(0, 4);
-              setCode(v);
-              setErreur("");
-              if (v.length === 4) {
-                if (v === codeEnvoye) {
-                  buzz();
-                  setEtape("identite");
-                } else {
-                  setErreur("Code incorrect, réessayez.");
-                  setCode("");
-                }
-              }
-            }}
-            className="absolute h-px w-px opacity-0"
-          />
-          {erreur && <p className="mt-3 text-center text-sm font-semibold text-red-600">{erreur}</p>}
-          <p className="mt-4 text-center text-xs text-muted">Saisissez les 4 chiffres du SMS</p>
-          <Retour onClick={() => setEtape("tel")} />
-        </div>
-      )}
-
-      {etape === "identite" && (
-        <div className="[animation:monte_.4s_ease_both] mt-8">
-          <h1 className="font-display text-3xl font-extrabold text-ink">Votre compte gérant</h1>
-          <p className="mt-2 text-sm text-muted">Une seule fois. Vous resterez connecté sur ce téléphone.</p>
-          <label htmlFor="resp-pro" className="label mt-6">
-            Nom du responsable
-          </label>
-          <input id="resp-pro" autoFocus placeholder="Ex : Aya Koné" value={responsable} onChange={(e) => setResponsable(e.target.value)} className="input h-12" />
-          <label htmlFor="pin-pro" className="label mt-4">
-            Code PIN (4 chiffres) <span className="font-normal text-muted">— verrouillage rapide</span>
-          </label>
-          <input id="pin-pro" inputMode="numeric" placeholder="••••" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} className="input h-12" />
-          <button
-            type="button"
-            disabled={responsable.trim().length < 2 || pin.length < 4}
-            onClick={() => {
-              buzz();
-              entrerNouveau();
-            }}
-            className="btn btn-primary mt-5 w-full disabled:opacity-40"
-          >
-            <KeyRound className="size-4" aria-hidden /> Créer mon compte
-          </button>
-          <Retour onClick={() => setEtape("code")} />
-        </div>
-      )}
-
-      <p className="mt-auto flex items-center justify-center gap-1.5 pt-8 text-center text-[11px] text-muted">
-        <ShieldCheck className="size-3.5" aria-hidden /> Espace réservé aux établissements — données de démonstration
+      <p className="mt-auto flex items-center justify-center gap-1.5 pt-6 text-center text-[11px] text-white/50">
+        <ShieldCheck className="size-3.5" aria-hidden /> Espace réservé aux établissements — Ensemble pour la qualité !
       </p>
     </div>
-  );
-}
-
-function Retour({ onClick }: { onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="mt-4 flex items-center gap-1.5 text-sm font-semibold text-muted">
-      <ArrowLeft className="size-4" aria-hidden /> Retour
-    </button>
   );
 }

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { TableauAbonnement } from "@/components/paiement/tableau-abonnement";
+import { AbonnementPro } from "@/components/pro/abonnement-pro";
 
-export const metadata: Metadata = { title: "Abonnement et paiements", robots: { index: false } };
+export const metadata: Metadata = { title: "Abonnement", robots: { index: false } };
 
 export default function AbonnementPage() {
-  return <TableauAbonnement />;
+  return <AbonnementPro />;
 }

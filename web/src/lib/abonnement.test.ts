@@ -41,8 +41,8 @@ const tx = (statut: "reussi" | "echoue"): Transaction => ({
 });
 
 test("prix configurables : mensuel et annuel avec remise", () => {
-  assert.equal(montantPeriode(CONFIG_DEFAUT, "basique", "mensuel"), 15000);
-  assert.equal(montantPeriode(CONFIG_DEFAUT, "premium", "annuel"), 459000);
+  assert.equal(montantPeriode(CONFIG_DEFAUT, "basique", "mensuel"), 0);
+  assert.equal(montantPeriode(CONFIG_DEFAUT, "premium", "annuel"), 305000);
   const config = { ...CONFIG_DEFAUT, prix: { basique: 20000, premium: 60000 }, remiseAnnuelle: 0 };
   assert.equal(montantPeriode(config, "premium", "annuel"), 720000);
 });
@@ -100,13 +100,14 @@ test("changement de pack : avoir au prorata, reliquat converti en jours (aucun c
   const annuel: Abonnement = { ...ab, periodicite: "annuel", debut: "2026-10-01T00:00:00.000Z", fin: "2027-10-01T00:00:00.000Z" };
   const paiement = { ...tx("reussi"), montant: 459000, periodicite: "annuel" as const };
   const montee = devis({ abonnement: { ...annuel, pack: "basique" }, transactions: [{ ...paiement, montant: 153000 }] }, "2026-10-01T00:00:00.000Z", CONFIG_DEFAUT, { pack: "premium", periodicite: "annuel", type: "changement" });
-  assert.equal(montee.total, 459000 - 153000);
+  assert.equal(montee.total, 305000 - 153000);
   assert.equal(montee.joursOfferts, 0);
-  const descente = devis({ abonnement: annuel, transactions: [paiement] }, "2026-10-01T00:00:00.000Z", CONFIG_DEFAUT, { pack: "basique", periodicite: "mensuel", type: "changement" });
+  const configPayante = { ...CONFIG_DEFAUT, prix: { basique: 15000, premium: 60000 } };
+  const descente = devis({ abonnement: annuel, transactions: [paiement] }, "2026-10-01T00:00:00.000Z", configPayante, { pack: "basique", periodicite: "mensuel", type: "changement" });
   assert.equal(descente.total, 0);
   assert.ok(descente.joursOfferts > 800, `jours offerts : ${descente.joursOfferts}`);
   const renouvellement = devis({ abonnement: ab, transactions: [] }, "2026-10-20T00:00:00.000Z", CONFIG_DEFAUT, { pack: "premium", periodicite: "mensuel", type: "renouvellement" });
-  assert.deepEqual([renouvellement.debut, renouvellement.total], [ab.fin, 45000]);
+  assert.deepEqual([renouvellement.debut, renouvellement.total], [ab.fin, 29900]);
 });
 
 test("validation des numéros Mobile Money et des cartes", () => {
