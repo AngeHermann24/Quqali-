@@ -93,7 +93,7 @@ export function AccueilApp({ etablissements }: { etablissements: Etablissement[]
 
       {/* En-tête : logo, notifications, avatar */}
       <header className="relative flex items-center justify-end px-5 pt-5">
-        <Link href="/" aria-label={`Qualité+ — ${t.accueilNav}`} className="absolute left-1/2 -ml-6 -translate-x-1/2 rounded-lg">
+        <Link href="/" aria-label={`Qualité+ — ${t.accueilNav}`} className="absolute left-5 rounded-lg">
           <LogoApp imgClassName="h-14" />
         </Link>
         <div className="flex items-center gap-3">
