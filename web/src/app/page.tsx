@@ -12,10 +12,11 @@ export const metadata: Metadata = {
   description: SITE.description,
 };
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ vitrine?: string }> }) {
+  const { vitrine } = await searchParams;
   const hote = (await headers()).get("host");
-  // Domaine nu de production → vitrine ; app.* / localhost / previews → application.
-  if (espaceDe(hote) === "vitrine") return <Vitrine />;
+  // Domaine nu de production → vitrine ; ?vitrine=1 → aperçu local ; sinon app usager.
+  if (vitrine === "1" || espaceDe(hote) === "vitrine") return <Vitrine />;
 
   const etablissements = await cataloguePublic();
   const laureats = AWARDS.laureats
