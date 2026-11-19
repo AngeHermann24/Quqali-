@@ -7,10 +7,11 @@ import { CLES, maintenant } from "@/lib/espace";
 import { useStockage } from "@/lib/stockage";
 import { COMPTES_DEMO, nouveauComptePro } from "@/lib/pro-demo";
 import type { ComptePro } from "@/lib/pro-demo";
-import type { Dossier } from "@/lib/espace";
+import type {} from "@/lib/espace";
 import { Chargement } from "@/components/espace/ui";
 import { LogoProCartouche } from "@/components/pro/ui";
 import { cn } from "@/lib/site";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 type Mode = "connexion" | "inscription";
 const DELAI_RENVOI = 58;
@@ -19,7 +20,7 @@ const DELAI_RENVOI = 58;
 export function ConnexionPro() {
   const router = useRouter();
   const [compte, setCompte] = useStockage<ComptePro>(CLES.comptePro);
-  const [, setDossier] = useStockage<Dossier>(CLES.dossier);
+  const [, setDossier] = useDossierPro();
 
   const [mode, setMode] = useState<Mode>("inscription");
   const [tel, setTel] = useState("");

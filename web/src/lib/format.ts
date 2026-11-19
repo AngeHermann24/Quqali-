@@ -1,11 +1,21 @@
-const dateFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-const moisFormat = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
+const OPT_DATE: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" };
+const OPT_MOIS: Intl.DateTimeFormatOptions = { month: "long", year: "numeric", timeZone: "UTC" };
+const formats = new Map<string, Intl.DateTimeFormat>();
+const df = (opt: Intl.DateTimeFormatOptions, locale = "fr-FR") => {
+  const cle = `${locale}-${opt.day ? "d" : "m"}`;
+  let f = formats.get(cle);
+  if (!f) {
+    f = new Intl.DateTimeFormat(locale, opt);
+    formats.set(cle, f);
+  }
+  return f;
+};
 
-export const formatDate = (iso: string) => dateFormat.format(new Date(iso));
-export const formatMois = (iso: string) => moisFormat.format(new Date(iso));
+export const formatDate = (iso: string, locale = "fr-FR") => df(OPT_DATE, locale).format(new Date(iso));
+export const formatMois = (iso: string, locale = "fr-FR") => df(OPT_MOIS, locale).format(new Date(iso));
 
-export const formatScore = (n: number) =>
-  n.toLocaleString("fr-FR", { minimumFractionDigits: Number.isInteger(n) ? 0 : 1, maximumFractionDigits: 1 });
+export const formatScore = (n: number, locale = "fr-FR") =>
+  n.toLocaleString(locale, { minimumFractionDigits: Number.isInteger(n) ? 0 : 1, maximumFractionDigits: 1 });
 
 export const itineraire = ([lat, lng]: [number, number]) => `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
@@ -21,6 +31,7 @@ export const distanceKm = (a: [number, number], b: [number, number]) => {
 export const normaliser = (s: string) =>
   s
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .trim();
+

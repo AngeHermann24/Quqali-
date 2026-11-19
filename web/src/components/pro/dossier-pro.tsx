@@ -3,13 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { Camera, ChevronRight, FileCheck2, FileText, FolderOpen, ImagePlus, Send, TriangleAlert } from "lucide-react";
-import { CLES, DOCUMENTS_REQUIS, type Dossier, maintenant } from "@/lib/espace";
+import { DOCUMENTS_REQUIS, type Dossier, maintenant } from "@/lib/espace";
 import type { Secteur } from "@/lib/data";
-import { useStockage } from "@/lib/stockage";
 import { COMMUNES_ABIDJAN, VILLES_CI } from "@/components/espace/inscription-etablissement";
 import { Chargement } from "@/components/espace/ui";
 import { CarteRepere } from "@/components/pro/carte-repere";
 import { EntetePro, UploadItem, type EtatUpload } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 const TYPES: { id: string; label: string; secteur: Secteur }[] = [
   { id: "hotel", label: "Hôtel", secteur: "hotellerie" },
@@ -61,7 +61,7 @@ const vide: Brouillon = {
 /** Écran 3 — Dossier de candidature : infos générales + documents + envoi. */
 export function DossierPro() {
   const router = useRouter();
-  const [dossier, setDossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier, setDossier] = useDossierPro();
   const [brouillon, setBrouillon] = useState<Brouillon | null>(null);
   const [envoi, setEnvoi] = useState<Record<string, number>>({});
   const [fichierActif, setFichierActif] = useState<string | null>(null);

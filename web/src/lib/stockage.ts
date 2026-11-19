@@ -13,11 +13,19 @@ function abonner(callback: () => void) {
   };
 }
 
-type Maj<T> = T | null | ((precedent: T | null) => T | null);
+export type Maj<T> = T | null | ((precedent: T | null) => T | null);
+
+function analyser<T>(brut: string): T | null {
+  try {
+    return JSON.parse(brut) as T;
+  } catch {
+    return null;
+  }
+}
 
 export function lireStockage<T>(cle: string): T | null {
   const brut = localStorage.getItem(cle);
-  return brut ? (JSON.parse(brut) as T) : null;
+  return brut ? analyser<T>(brut) : null;
 }
 
 export function ecrireStockage<T>(cle: string, maj: Maj<T>) {
@@ -33,7 +41,7 @@ export function useStockage<T>(cle: string): [T | null | undefined, (maj: Maj<T>
     () => localStorage.getItem(cle),
     () => undefined,
   );
-  const valeur = useMemo(() => (brut == null ? brut : (JSON.parse(brut) as T)), [brut]);
+  const valeur = useMemo(() => (brut == null ? brut : analyser<T>(brut)), [brut]);
   const ecrire = useCallback((maj: Maj<T>) => ecrireStockage(cle, maj), [cle]);
   return [valeur, ecrire];
 }

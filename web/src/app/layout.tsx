@@ -4,6 +4,8 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { NavBas } from "@/components/app/nav-bas";
 import { CadreApp } from "@/components/app/cadre-app";
+import { FournisseurCatalogue } from "@/components/catalogue";
+import { FournisseurSession } from "@/components/session";
 import { SITE } from "@/lib/site";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -22,7 +24,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col font-sans" suppressHydrationWarning>
         <SiteHeader />
         <main className="flex-1 pb-20 lg:pb-0">
-          <CadreApp>{children}</CadreApp>
+          <FournisseurSession>
+            <FournisseurCatalogue>
+              <CadreApp>{children}</CadreApp>
+            </FournisseurCatalogue>
+          </FournisseurSession>
         </main>
         <NavBas />
       </body>

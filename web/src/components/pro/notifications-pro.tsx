@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Award, Bell, CalendarClock, CheckCircle2, ClipboardCheck, CreditCard, FileCheck2, MessageSquareText, Sparkles, Star } from "lucide-react";
-import { CLES, type Dossier, avisDemo } from "@/lib/espace";
+import { CLES, avisDemo } from "@/lib/espace";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/site";
 import { useStockage } from "@/lib/stockage";
@@ -11,6 +11,7 @@ import type { Reservation } from "@/lib/reservation";
 import { useHorloge } from "@/lib/use-config";
 import { Chargement } from "@/components/espace/ui";
 import { EntetePro, EtatVidePro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 interface Notif {
   id: string;
@@ -28,7 +29,7 @@ const ilYA = (iso: string, ref: string) => {
 };
 
 export function NotificationsPro() {
-  const [dossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier] = useDossierPro();
   const [avisTous] = useStockage<Record<string, AvisClient[]>>(CLES.avis);
   const [resaTous] = useStockage<Record<string, Reservation[]>>(CLES.reservations);
   const [vues, setVues] = useStockage<string[]>(CLES.notificationsProVues);

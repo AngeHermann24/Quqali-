@@ -16,11 +16,12 @@ import {
   Star,
   X,
 } from "lucide-react";
-import { type Etablissement, SECTEURS, type Secteur, getEtablissement, noteMoyenne } from "@/lib/data";
-import { type Gestion, etatPublic } from "@/lib/admin";
-import { CLES } from "@/lib/espace";
-import { distanceKm, itineraire } from "@/lib/format";
-import { useStockage } from "@/lib/stockage";
+import { type Etablissement, SECTEURS, type Secteur, noteMoyenne } from "@/lib/data";
+import { etatPublic } from "@/lib/admin";
+import { distanceKm, formatScore, itineraire } from "@/lib/format";
+import { fmt, secteurPluriel, secteurSingulier, tv, type CleStr } from "@/lib/langue";
+import { useCatalogue } from "@/components/catalogue";
+import { useLangue } from "@/components/langue";
 import { cn } from "@/lib/site";
 import { Modal } from "@/components/modal";
 import { PhotoPlaceholder } from "@/components/ui";
@@ -30,15 +31,12 @@ import { useFavoris } from "@/components/app/favoris";
 type Tri = "recents" | "notes" | "proches" | "alpha";
 type PanneauMenu = "trier" | null;
 
-const TRIS: { id: Tri; label: string }[] = [
-  { id: "recents", label: "Ajoutés récemment" },
-  { id: "notes", label: "Les mieux notés" },
-  { id: "proches", label: "Les plus proches" },
-  { id: "alpha", label: "Ordre alphabétique" },
+const TRIS: { id: Tri; cle: CleStr }[] = [
+  { id: "recents", cle: "triRecents" },
+  { id: "notes", cle: "mieuxNotes" },
+  { id: "proches", cle: "plusProches" },
+  { id: "alpha", cle: "triAlpha" },
 ];
-
-const LIBELLES_PUCES: Partial<Record<Secteur, string>> = { restauration: "Restaurants", hotellerie: "Hôtels", sante: "Santé" };
-const LIBELLES_TYPES: Partial<Record<Secteur, string>> = { restauration: "Restaurant", hotellerie: "Hôtel", sante: "Santé" };
 const SECTEURS_PRINCIPAUX: Secteur[] = ["restauration", "hotellerie", "sante"];
 
 const LARGUEUR_RETRAIT = 92;
@@ -48,7 +46,8 @@ export function FavorisUsager() {
   const params = useSearchParams();
   const { favoris, retirer, ajouter, retirerPlusieurs, charge } = useFavoris();
   const { compte } = useCompteClient();
-  const [gestion] = useStockage<Gestion>(CLES.gestion);
+  const { gestion, getEtablissement } = useCatalogue();
+  const { langue, t, locale } = useLangue();
 
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [menu, setMenu] = useState<PanneauMenu>(null);
@@ -106,7 +105,7 @@ export function FavorisUsager() {
     .filter((x) => secteur === "tous" || x.e.secteur === secteur)
     .sort((a, b) => {
       if (tri === "notes") return noteMoyenne(b.e.avis) - noteMoyenne(a.e.avis);
-      if (tri === "alpha") return a.e.nom.localeCompare(b.e.nom, "fr");
+      if (tri === "alpha") return a.e.nom.localeCompare(b.e.nom, locale);
       if (tri === "proches" && position)
         return distanceKm(position, a.e.coords) - distanceKm(position, b.e.coords);
       return a.index - b.index; // récents (ordre d'ajout)
@@ -142,7 +141,7 @@ export function FavorisUsager() {
     setEdition(false);
   };
 
-  const libSecteur = (s: Secteur | "tous") => (s === "tous" ? "établissements" : (LIBELLES_PUCES[s] ?? SECTEURS[s].label).toLowerCase());
+  const libSecteur = (s: Secteur | "tous") => (s === "tous" ? t.etablissementsGenerique : secteurPluriel(s, langue).toLowerCase());
   const menuEtablissement = menuLigne ? getEtablissement(menuLigne) : null;
 
   return (
@@ -152,17 +151,17 @@ export function FavorisUsager() {
         <button
           type="button"
           onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
-          aria-label="Retour"
+          aria-label={t.retour}
           className="grid size-10 place-items-center rounded-full text-ink transition active:scale-95"
         >
           <ArrowLeft className="size-5" aria-hidden />
         </button>
-        <h1 className="font-display text-lg font-extrabold text-primary">Favoris</h1>
+        <h1 className="font-display text-lg font-extrabold text-primary">{t.favorisNav}</h1>
         <div className="relative">
           <button
             type="button"
             onClick={() => setMenu(menu === "trier" ? null : "trier")}
-            aria-label="Trier et modifier la liste"
+            aria-label={t.trierModifier}
             aria-expanded={menu === "trier"}
             className="relative grid size-10 place-items-center rounded-full text-ink transition active:scale-95"
           >
@@ -171,10 +170,10 @@ export function FavorisUsager() {
           </button>
           {menu === "trier" && (
             <>
-              <button type="button" aria-label="Fermer le menu" className="fixed inset-0 z-30 cursor-default" onClick={() => setMenu(null)} />
+              <button type="button" aria-label={t.fermer} className="fixed inset-0 z-30 cursor-default" onClick={() => setMenu(null)} />
               <div className="absolute top-11 right-0 z-40 w-60 rounded-2xl border border-line bg-white p-2 shadow-lg">
-                <p className="label px-2 pt-1">Trier par</p>
-                {TRIS.map(({ id, label }) => (
+                <p className="label px-2 pt-1">{t.trierPar}</p>
+                {TRIS.map(({ id, cle }) => (
                   <button
                     key={id}
                     type="button"
@@ -184,7 +183,7 @@ export function FavorisUsager() {
                     }}
                     className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-surface"
                   >
-                    {label}
+                    {t[cle]}
                     {tri === id && <Check className="size-4 text-success" aria-hidden />}
                   </button>
                 ))}
@@ -197,7 +196,7 @@ export function FavorisUsager() {
                   }}
                   className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-surface"
                 >
-                  Modifier la liste
+                  {t.modifierListe}
                 </button>
               </div>
             </>
@@ -211,13 +210,13 @@ export function FavorisUsager() {
           <Heart className="mt-0.5 size-4.5 shrink-0 text-primary" aria-hidden />
           <p className="flex-1 text-xs leading-relaxed text-ink/80">
             <Link href="/connexion?suivant=%2Ffavoris" className="font-bold text-primary underline underline-offset-2">
-              Connectez-vous
+              {t.connectezVous}
             </Link>{" "}
-            pour retrouver vos favoris sur tous vos appareils.
+            {t.favorisPartout}
           </p>
           <button
             type="button"
-            aria-label="Fermer"
+            aria-label={t.fermer}
             onClick={() => {
               sessionStorage.setItem("ql-favoris-bandeau", "1");
               setBandeauCompte(false);
@@ -230,13 +229,13 @@ export function FavorisUsager() {
       )}
 
       {/* ---------- Puces secteur ---------- */}
-      <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto px-5" role="tablist" aria-label="Filtrer par secteur">
+      <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto px-5" role="tablist" aria-label={t.filtrerSecteur}>
         <Puce active={secteur === "tous"} compte={items.length} onClick={() => majUrl("secteur", "tous")}>
-          Tous
+          {t.tous}
         </Puce>
         {secteursPresents.map((s) => (
           <Puce key={s} active={secteur === s} compte={compteurs[s] ?? 0} onClick={() => majUrl("secteur", s)}>
-            {LIBELLES_PUCES[s] ?? SECTEURS[s].label}
+            {secteurPluriel(s, langue)}
           </Puce>
         ))}
       </div>
@@ -260,17 +259,17 @@ export function FavorisUsager() {
           <span className="grid size-20 place-items-center rounded-full bg-surface text-muted">
             <Heart className="size-9" aria-hidden />
           </span>
-          <p className="mt-5 font-display text-lg font-bold text-ink">Aucun favori pour l&apos;instant</p>
-          <p className="mt-1.5 max-w-xs text-sm text-muted">Touchez le cœur sur un établissement pour le retrouver ici.</p>
+          <p className="mt-5 font-display text-lg font-bold text-ink">{t.aucunFavori}</p>
+          <p className="mt-1.5 max-w-xs text-sm text-muted">{t.aucunFavoriDetail}</p>
           <Link href="/etablissements" className="btn btn-success mt-7 rounded-full px-6 py-3.5 font-display font-bold">
-            <Compass className="size-5" aria-hidden /> Explorer les établissements
+            <Compass className="size-5" aria-hidden /> {t.explorerEtab}
           </Link>
         </div>
       ) : visibles.length === 0 ? (
         <div className="mt-16 flex flex-col items-center px-6 text-center">
-          <p className="font-display text-lg font-bold text-ink">Aucun {libSecteur(secteur)} dans vos favoris</p>
+          <p className="font-display text-lg font-bold text-ink">{fmt(t.aucunXFavoris, { s: libSecteur(secteur) })}</p>
           <button type="button" onClick={() => majUrl("secteur", "tous")} className="btn btn-outline mt-6 rounded-full px-6 py-3 font-bold">
-            Voir tous mes favoris
+            {t.voirTousFavoris}
           </button>
         </div>
       ) : (
@@ -296,10 +295,10 @@ export function FavorisUsager() {
       {edition && charge && items.length > 0 && (
         <div className="fixed bottom-[4.5rem] left-1/2 z-40 flex w-[calc(100%-2.5rem)] max-w-[380px] -translate-x-1/2 items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-lg">
           <button type="button" disabled={selection.size === 0} onClick={retirerSelection} className="btn flex-1 bg-danger py-3 text-sm font-bold text-white disabled:opacity-40">
-            Retirer ({selection.size})
+            {fmt(t.retirerN, { n: selection.size })}
           </button>
           <button type="button" onClick={() => { setEdition(false); setSelection(new Set()); }} className="btn btn-outline flex-1 py-3 text-sm font-bold">
-            Terminer
+            {t.terminer}
           </button>
         </div>
       )}
@@ -307,10 +306,10 @@ export function FavorisUsager() {
       {/* ---------- Menu rapide de la ligne ---------- */}
       <Modal open={!!menuEtablissement} onClose={() => setMenuLigne(null)} title={menuEtablissement?.nom ?? ""}>
         <div className="space-y-1 pb-2">
-          <ActionMenu Icon={Compass} label="Ouvrir la fiche" onClick={() => { setMenuLigne(null); router.push(`/etablissements/${menuLigne}`); }} />
+          <ActionMenu Icon={Compass} label={t.ouvrirFiche} onClick={() => { setMenuLigne(null); router.push(`/etablissements/${menuLigne}`); }} />
           <ActionMenu
             Icon={Navigation}
-            label="Itinéraire"
+            label={t.itineraire}
             onClick={() => {
               if (menuEtablissement) window.open(itineraire(menuEtablissement.coords), "_blank");
               setMenuLigne(null);
@@ -322,12 +321,12 @@ export function FavorisUsager() {
               onClick={() => setMenuLigne(null)}
               className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-ink transition hover:bg-surface"
             >
-              <Phone className="size-4.5 text-success" aria-hidden /> Appeler
+              <Phone className="size-4.5 text-success" aria-hidden /> {t.appeler}
             </a>
           )}
           <ActionMenu
             Icon={HeartOff}
-            label="Retirer des favoris"
+            label={t.retirerFavoris}
             danger
             onClick={() => {
               const slug = menuLigne!;
@@ -346,9 +345,9 @@ export function FavorisUsager() {
           toast ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0",
         )}
       >
-        Retiré des favoris
+        {t.retireDesFavoris}
         <button type="button" onClick={annuler} className="rounded-full bg-white/15 px-3 py-1 font-bold text-white transition active:scale-95">
-          Annuler
+          {t.annuler}
         </button>
       </div>
     </div>
@@ -397,6 +396,7 @@ function LigneFavori({
   onMenu: () => void;
 }) {
   const router = useRouter();
+  const { langue, t, locale } = useLangue();
   const [dx, setDx] = useState(0);
   const [ouvert, setOuvert] = useState(false);
   const tactile = useRef({ x: 0, y: 0, actif: false, bloque: false, appuiLong: 0 });
@@ -432,10 +432,10 @@ function LigneFavori({
       <button
         type="button"
         onClick={onRetirer}
-        aria-label={`Retirer ${e.nom} des favoris`}
+        aria-label={fmt(t.retirerDeFavoris, { nom: e.nom })}
         className="absolute inset-y-0 right-0 flex w-[92px] items-center justify-center gap-1.5 bg-red-600 text-sm font-bold text-white"
       >
-        <HeartOff className="size-4.5" aria-hidden /> Retirer
+        <HeartOff className="size-4.5" aria-hidden /> {t.retirer}
       </button>
 
       <div
@@ -459,7 +459,7 @@ function LigneFavori({
           ev.preventDefault();
           onMenu();
         }}
-        aria-label={indisponible ? `${e.nom} — plus disponible` : `Ouvrir la fiche de ${e.nom}`}
+        aria-label={indisponible ? `${e.nom} — ${t.plusDispo}` : fmt(t.ouvrirFicheDe, { nom: e.nom })}
         className={cn(
           "relative flex cursor-pointer items-center gap-3.5 border-b border-line bg-white px-5 py-3 transition-transform duration-200 last:border-0",
           indisponible && "opacity-50",
@@ -477,15 +477,15 @@ function LigneFavori({
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-[15px] font-bold text-ink">{e.nom}</p>
           <p className="mt-0.5 truncate text-[13px] text-muted">
-            {LIBELLES_TYPES[e.secteur] ?? e.sousType} · {e.commune}
+            {secteurSingulier(e.secteur, langue)} · {e.commune}
           </p>
           {indisponible ? (
-            <p className="mt-1 text-xs font-bold text-muted">Plus disponible</p>
+            <p className="mt-1 text-xs font-bold text-muted">{t.plusDispo}</p>
           ) : (
             <p className="mt-1 flex items-center gap-1 text-[13px]">
               <Star className="size-3.5 fill-or text-or" aria-hidden />
-              <span className="font-bold text-ink">{moyenne > 0 ? moyenne.toFixed(1).replace(".", ",") : "—"}</span>
-              <span className="text-muted">({e.avis.length} avis)</span>
+              <span className="font-bold text-ink">{moyenne > 0 ? formatScore(moyenne, locale) : "—"}</span>
+              <span className="text-muted">({tv(t.avisNb, e.avis.length)})</span>
             </p>
           )}
         </div>
@@ -499,18 +499,18 @@ function LigneFavori({
               }}
               className="rounded-full border border-line px-3 py-1.5 text-xs font-bold text-red-600"
             >
-              Retirer
+              {t.retirer}
             </button>
           ) : (
             <>
-              {distance !== null && <span className="text-[13px] font-semibold text-muted">{distance.toFixed(1).replace(".", ",")} km</span>}
+              {distance !== null && <span className="text-[13px] font-semibold text-muted">{formatScore(distance, locale)} km</span>}
               <button
                 type="button"
                 onClick={(ev) => {
                   ev.stopPropagation();
                   onMenu();
                 }}
-                aria-label={`Options pour ${e.nom}`}
+                aria-label={fmt(t.optionsPour, { nom: e.nom })}
                 className="grid size-11 place-items-center rounded-full text-muted transition active:scale-90"
               >
                 <EllipsisVertical className="size-5" aria-hidden />

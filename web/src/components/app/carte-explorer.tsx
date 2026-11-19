@@ -5,6 +5,8 @@ import L from "leaflet";
 import { useEffect, useRef, useState } from "react";
 import { Crosshair } from "lucide-react";
 import type { Secteur } from "@/lib/data";
+import { tv } from "@/lib/langue";
+import { useLangue } from "@/components/langue";
 import { SECTEUR_COULEURS } from "@/components/app/ui-app";
 
 export interface PointExplorer {
@@ -62,24 +64,26 @@ function iconePin(p: PointExplorer, actif: boolean, delai: number) {
   });
 }
 
-function iconeCluster(n: number, c: string) {
+function iconeCluster(n: number, c: string, label: string) {
   return L.divIcon({
     className: "pin-explorer",
-    html: `<span class="cluster-bulle" style="--c:${c}" aria-label="${n} établissements">${n}</span>`,
+    html: `<span class="cluster-bulle" style="--c:${c}" aria-label="${label}">${n}</span>`,
     iconSize: [44, 44],
     iconAnchor: [22, 22],
   });
 }
 
-const iconeMoi = () =>
+const iconeMoi = (label: string) =>
   L.divIcon({
     className: "pin-explorer",
-    html: `<span class="me-dot" aria-label="Votre position"><i></i></span>`,
+    html: `<span class="me-dot" aria-label="${label}"><i></i></span>`,
     iconSize: [16, 16],
     iconAnchor: [8, 8],
   });
 
 export default function CarteExplorer({ points, activeSlug, onSelect, onPosition, onErreur }: Props) {
+  const { t } = useLangue();
+  const tRef = useRef(t);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -92,6 +96,7 @@ export default function CarteExplorer({ points, activeSlug, onSelect, onPosition
   const infoTimer = useRef<number | null>(null);
 
   useEffect(() => {
+    tRef.current = t;
     onSelectRef.current = onSelect;
     onPositionRef.current = onPosition;
     onErreurRef.current = onErreur;
@@ -179,7 +184,7 @@ export default function CarteExplorer({ points, activeSlug, onSelect, onPosition
             groupe.reduce((s, p) => s + p.coords[1], 0) / groupe.length,
           ];
           const c = SECTEUR_COULEURS[groupe[0].secteur] ?? "#1E3A8A";
-          L.marker(centre, { icon: iconeCluster(groupe.length, c) })
+          L.marker(centre, { icon: iconeCluster(groupe.length, c, tv(tRef.current.etabCompte, groupe.length)) })
             .on("click", (ev) => {
               L.DomEvent.stopPropagation(ev);
               map.flyToBounds(L.latLngBounds(groupe.map((p) => p.coords)).pad(0.35), { duration: 0.5 });
@@ -211,7 +216,7 @@ export default function CarteExplorer({ points, activeSlug, onSelect, onPosition
     const layer = layerRef.current;
     if (!layer) return;
     if (moiRef.current) moiRef.current.setLatLng(coords);
-    else moiRef.current = L.marker(coords, { icon: iconeMoi(), interactive: false }).addTo(layer);
+    else moiRef.current = L.marker(coords, { icon: iconeMoi(tRef.current.votrePosition), interactive: false }).addTo(layer);
   };
 
   const afficherInfo = (msg: string | null) => {
@@ -222,7 +227,7 @@ export default function CarteExplorer({ points, activeSlug, onSelect, onPosition
 
   const localiser = (centrer: boolean, discret = false) => {
     if (!navigator.geolocation) {
-      if (!discret) afficherInfo("Position indisponible sur cet appareil — centrée sur Abidjan.");
+      if (!discret) afficherInfo(tRef.current.positionIndispo);
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -234,7 +239,7 @@ export default function CarteExplorer({ points, activeSlug, onSelect, onPosition
         if (centrer && mapRef.current) mapRef.current.flyTo(c, 15, { duration: reduit() ? 0 : 0.8 });
       },
       () => {
-        if (!discret) afficherInfo("Position refusée — la carte reste centrée sur Abidjan.");
+        if (!discret) afficherInfo(tRef.current.positionRefusee);
       },
       { timeout: 6000 },
     );
@@ -250,11 +255,11 @@ export default function CarteExplorer({ points, activeSlug, onSelect, onPosition
 
   return (
     <div className="relative size-full">
-      <div ref={containerRef} className="size-full" role="application" aria-label="Carte des établissements certifiés à Abidjan" />
+      <div ref={containerRef} className="size-full" role="application" aria-label={t.carteEtabAria} />
       <button
         type="button"
         onClick={() => localiser(true)}
-        aria-label="Recentrer sur ma position"
+        aria-label={t.recentrerPosition}
         className="absolute right-4 bottom-[9.5rem] z-[500] grid size-11 place-items-center rounded-full bg-white text-ink shadow-flottant transition active:scale-90"
       >
         <Crosshair className="size-5" aria-hidden />

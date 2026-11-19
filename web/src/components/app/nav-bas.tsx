@@ -4,13 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, Compass, Heart, Home, User } from "lucide-react";
 import { cn } from "@/lib/site";
+import { useLangue } from "@/components/langue";
+import { type CleStr } from "@/lib/langue";
 
-const ONGLETS: { href: string; label: string; Icon: typeof Home; exact?: boolean; alias?: string[] }[] = [
-  { href: "/", label: "Accueil", Icon: Home, exact: true },
-  { href: "/etablissements", label: "Explorer", Icon: Compass },
-  { href: "/favoris", label: "Favoris", Icon: Heart },
-  { href: "/reservations", label: "Réservations", Icon: CalendarDays, alias: ["/reserver", "/avis"] },
-  { href: "/profil", label: "Profil", Icon: User },
+const ONGLETS: { href: string; cle: CleStr; Icon: typeof Home; exact?: boolean; alias?: string[] }[] = [
+  { href: "/", cle: "accueilNav", Icon: Home, exact: true },
+  { href: "/etablissements", cle: "explorerNav", Icon: Compass },
+  { href: "/favoris", cle: "favorisNav", Icon: Heart },
+  { href: "/reservations", cle: "reservationsNav", Icon: CalendarDays, alias: ["/reserver", "/avis"] },
+  { href: "/profil", cle: "profil", Icon: User },
 ];
 
 /** Routes hors univers usager : la barre du bas n'y apparaît jamais. */
@@ -20,17 +22,18 @@ const SANS_BARRE = ["/connexion"];
 
 export function NavBas() {
   const pathname = usePathname();
+  const { t } = useLangue();
   if ([...HORS_APP, ...SANS_BARRE].some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null;
   // Fiche établissement : la barre d'action (Réserver / Itinéraire / Appeler) la remplace.
   if (pathname.startsWith("/etablissements/")) return null;
 
   return (
     <nav
-      aria-label="Navigation principale"
+      aria-label={t.navPrincipale}
       className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
       <div className="flex items-center justify-around px-1 py-1.5">
-        {ONGLETS.map(({ href, label, Icon, exact, alias }) => {
+        {ONGLETS.map(({ href, cle, Icon, exact, alias }) => {
           const actif = exact ? pathname === href : pathname.startsWith(href) || (alias ? alias.some((a) => pathname.startsWith(a)) : false);
           return (
             <Link
@@ -43,7 +46,7 @@ export function NavBas() {
               )}
             >
               <Icon className="size-[22px]" strokeWidth={actif ? 2.4 : 1.8} aria-hidden />
-              <span className={cn("text-[10px]", actif ? "font-bold" : "font-medium")}>{label}</span>
+              <span className={cn("text-[10px]", actif ? "font-bold" : "font-medium")}>{t[cle]}</span>
             </Link>
           );
         })}

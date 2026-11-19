@@ -1,6 +1,7 @@
 "use client";
 
 import type { Secteur } from "@/lib/data";
+import { changerStatutReservation, demanderReservation } from "@/lib/actions/usager";
 import { CLES } from "@/lib/espace";
 import {
   type ConfigReservation,
@@ -15,6 +16,7 @@ import {
   verifierDemande,
 } from "@/lib/reservation";
 import { configParDefaut } from "@/lib/reservation-demo";
+import { useSession } from "@/components/session";
 import { useStockage } from "@/lib/stockage";
 
 export interface MessageEnvoye extends MessageSortant {
@@ -27,6 +29,7 @@ export interface MessageEnvoye extends MessageSortant {
 const EVENEMENTS: Partial<Record<StatutReservation, EvenementReservation>> = { confirmee: "confirmee", refusee: "refusee", annulee: "annulee" };
 
 export function useReservations(etablissementId: string, nom: string, secteur: Secteur) {
+  const { mode } = useSession();
   const [toutes, setToutes] = useStockage<Record<string, Reservation[]>>(CLES.reservations);
   const [configs, setConfigs] = useStockage<Record<string, ConfigReservation>>(CLES.configReservation);
   const [messages, setMessages] = useStockage<Record<string, MessageEnvoye[]>>(CLES.messages);
@@ -46,6 +49,7 @@ export function useReservations(etablissementId: string, nom: string, secteur: S
     if (erreur) return { erreur };
     const reservation = creerReservation(etablissementId, secteur, config, demande, reservations.length + 1, maintenant);
     setToutes((prec) => ({ ...prec, [etablissementId]: [reservation, ...(prec?.[etablissementId] ?? [])] }));
+    if (mode === "supabase") void demanderReservation({ etablissementSlug: etablissementId, secteur, details: demande });
     return { reservation, messages: notifier(reservation, "creee", maintenant) };
   };
 
@@ -55,6 +59,7 @@ export function useReservations(etablissementId: string, nom: string, secteur: S
     if (!cible) return;
     const maj = changerStatut(cible, statut, maintenant, motif);
     setToutes((prec) => ({ ...prec, [etablissementId]: (prec?.[etablissementId] ?? []).map((r) => (r.id === id ? maj : r)) }));
+    if (mode === "supabase") void changerStatutReservation(id, statut, motif);
     const evenement = EVENEMENTS[statut];
     if (evenement) notifier(maj, evenement, maintenant);
   };

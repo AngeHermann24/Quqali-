@@ -63,8 +63,8 @@ export const SECTEURS: Record<Secteur, { label: string; nom: string; description
     reservation: "Prendre rendez-vous",
   },
   services: {
-    label: "Services",
-    nom: "Services",
+    label: "Autre",
+    nom: "Autre",
     description: "Coiffure, pressing, garages et prestations de service",
     reservation: "Prendre rendez-vous",
   },

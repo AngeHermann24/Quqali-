@@ -15,17 +15,17 @@ import {
   reference,
 } from "@/lib/abonnement";
 import type { Pack } from "@/lib/data";
-import { CLES, type Dossier } from "@/lib/espace";
+import { type Dossier } from "@/lib/espace";
 import { formatFCFA } from "@/lib/facture-pdf";
 import { formatDate } from "@/lib/format";
 import { nomPack } from "@/lib/packs";
-import { useStockage } from "@/lib/stockage";
 import { useConfigTarifs, useHorloge } from "@/lib/use-config";
 import { Chargement } from "@/components/espace/ui";
 import { telechargerFacture } from "@/components/paiement/facture";
 import { TunnelPaiement } from "@/components/paiement/tunnel-paiement";
 import { EntetePro, PanneauBas, PlanCard, StatusPillPro } from "@/components/pro/ui";
 import { cn } from "@/lib/site";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 const POINTS_BASIQUE = ["Fiche établissement", "Badge et note", "Avis clients", "Participation aux awards"];
 const VERROUS_BASIQUE = ["Visite 3D", "Réservation en ligne", "Rapport mensuel IA"];
@@ -41,7 +41,7 @@ const STATUTS_ABO: Record<string, { label: string; ton: string }> = {
 /** Écran 6 — Choix d'abonnement, paiement sécurisé et gestion. */
 export function AbonnementPro() {
   const router = useRouter();
-  const [dossier, setDossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier, setDossier] = useDossierPro();
   const { aujourdhui } = useHorloge();
   const { config } = useConfigTarifs();
   const [periodicite, setPeriodicite] = useState<Periodicite>("mensuel");

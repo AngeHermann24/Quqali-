@@ -14,12 +14,13 @@ import { useConfigTarifs, useHorloge } from "@/lib/use-config";
 import { useReservations } from "@/components/reservation/use-reservations";
 import { Chargement } from "@/components/espace/ui";
 import { BadgeCertifiePro, KpiCard, LockedFeature, RingScorePro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 /** Valeurs de démonstration stables, dérivées de l'identifiant de l'établissement. */
 const graine = (id: string) => [...id].reduce((s, c) => s + c.charCodeAt(0), 0);
 
 export function TableauBordPro() {
-  const [dossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier] = useDossierPro();
   const [avisTous] = useStockage<Record<string, AvisClient[]>>(CLES.avis);
   const { config } = useConfigTarifs();
   const { aujourdhui } = useHorloge();

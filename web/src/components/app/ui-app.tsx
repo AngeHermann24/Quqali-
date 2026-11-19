@@ -2,7 +2,10 @@
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { ChevronDown, Heart, Search, ShieldCheck, Star } from "lucide-react";
-import { SECTEURS, type Secteur } from "@/lib/data";
+import { type Secteur } from "@/lib/data";
+import { type NiveauQualite, niveauScore } from "@/lib/scores";
+import { fmt, secteurPluriel } from "@/lib/langue";
+import { useLangue } from "@/components/langue";
 import { SECTEUR_ICONS } from "@/components/ui";
 import { cn } from "@/lib/site";
 
@@ -18,17 +21,21 @@ export const SECTEUR_COULEURS: Record<Secteur, string> = {
 };
 
 /* ---------- Badge « Qualité certifiée » (reflet animé via .badge-brille) ---------- */
-export function BadgeCertifie({ compact = false, className }: { compact?: boolean; className?: string }) {
+export function BadgeCertifie({ compact = false, className, score, niveau: niveauProp }: { compact?: boolean; className?: string; score?: number; niveau?: NiveauQualite }) {
+  const { t } = useLangue();
+  const niveau = niveauProp ?? (score === undefined ? null : niveauScore(score));
+  const texte = niveau === "excellent" ? t.niveauExcellent : niveau === "bon" ? t.niveauBon : niveau === "ameliorer" ? t.niveauAmeliorer : t.badgeCertifie;
   return (
     <span
       className={cn(
-        "badge-brille inline-flex items-center gap-1 rounded-full bg-success/90 font-bold text-white backdrop-blur",
+        "badge-brille inline-flex items-center gap-1 rounded-full font-bold text-white backdrop-blur",
+        niveau === "excellent" ? "bg-primary/90" : niveau === "ameliorer" ? "bg-danger/90" : "bg-success/90",
         compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
         className,
       )}
     >
       <ShieldCheck className={compact ? "size-3" : "size-3.5"} aria-hidden />
-      Qualité certifiée
+      {texte}
     </span>
   );
 }
@@ -90,17 +97,19 @@ export function RingScore({ valeur, label, taille = 64, couleur = "#16A34A", epa
 
 /* ---------- Tuile secteur colorée (accueil : icône + label dans la couleur) ---------- */
 export function SectorTile({ secteur, onClick }: { secteur: Secteur; onClick?: () => void }) {
+  const { langue } = useLangue();
   const Icon = SECTEUR_ICONS[secteur];
+  const label = secteurPluriel(secteur, langue);
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={SECTEURS[secteur].label}
+      aria-label={label}
       className="flex h-26 w-full flex-col items-center justify-center gap-2 rounded-3xl text-white shadow-flottant transition active:scale-95"
       style={{ background: SECTEUR_COULEURS[secteur] }}
     >
       <Icon className="size-8" strokeWidth={1.8} aria-hidden />
-      <span className="text-xs font-bold">{SECTEURS[secteur].label}</span>
+      <span className="text-xs font-bold">{label}</span>
     </button>
   );
 }
@@ -125,7 +134,9 @@ export function Chip({ actif = false, children, onClick, icon }: { actif?: boole
 }
 
 /* ---------- Barre de recherche ---------- */
-export function SearchBar({ valeur, onChange, onSubmit, placeholder = "Rechercher un établissement..." }: { valeur: string; onChange: (v: string) => void; onSubmit?: () => void; placeholder?: string }) {
+export function SearchBar({ valeur, onChange, onSubmit, placeholder }: { valeur: string; onChange: (v: string) => void; onSubmit?: () => void; placeholder?: string }) {
+  const { t } = useLangue();
+  const ph = placeholder ?? t.recherchePlaceholder;
   return (
     <form
       role="search"
@@ -139,11 +150,11 @@ export function SearchBar({ valeur, onChange, onSubmit, placeholder = "Recherche
         type="search"
         value={valeur}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        aria-label={placeholder}
+        placeholder={ph}
+        aria-label={ph}
         className="min-w-0 flex-1 bg-transparent py-2.5 text-[15px] font-medium text-ink outline-none placeholder:text-muted"
       />
-      <button type="submit" aria-label="Rechercher" className="grid size-9 shrink-0 place-items-center rounded-full bg-bleu text-white transition active:scale-90">
+      <button type="submit" aria-label={t.rechercher} className="grid size-9 shrink-0 place-items-center rounded-full bg-bleu text-white transition active:scale-90">
         <Search className="size-4" aria-hidden />
       </button>
     </form>
@@ -166,11 +177,12 @@ export function StatusPill({ statut, label }: { statut: string; label: string })
 
 /* ---------- Étoiles ---------- */
 export function Etoiles({ note, sur = 5, taille = "size-4", interactif = false, onChange }: { note: number; sur?: number; taille?: string; interactif?: boolean; onChange?: (n: number) => void }) {
+  const { t } = useLangue();
   return (
     <span className="inline-flex items-center gap-0.5" role={interactif ? "radiogroup" : undefined}>
       {Array.from({ length: sur }, (_, i) => i + 1).map((n) =>
         interactif ? (
-          <button key={n} type="button" aria-label={`${n} étoile${n > 1 ? "s" : ""}`} aria-checked={n === Math.round(note)} role="radio" onClick={() => onChange?.(n)} className="transition active:scale-125">
+          <button key={n} type="button" aria-label={fmt(t.etoilesSur5, { n })} aria-checked={n === Math.round(note)} role="radio" onClick={() => onChange?.(n)} className="transition active:scale-125">
             <Star className={cn(taille, n <= Math.round(note) ? "fill-or text-or" : "text-line")} />
           </button>
         ) : (
@@ -183,11 +195,12 @@ export function Etoiles({ note, sur = 5, taille = "size-4", interactif = false, 
 
 /* ---------- Bouton cœur favori (explosion discrète) ---------- */
 export function CoeurFavori({ actif, onClick, taille = "size-5", fond = true }: { actif: boolean; onClick: () => void; taille?: string; fond?: boolean }) {
+  const { t } = useLangue();
   const [pop, setPop] = useState(false);
   return (
     <button
       type="button"
-      aria-label={actif ? "Retirer des favoris" : "Ajouter aux favoris"}
+      aria-label={actif ? t.retirerFavoris : t.ajouterFavoris}
       aria-pressed={actif}
       onClick={(e) => {
         e.preventDefault();

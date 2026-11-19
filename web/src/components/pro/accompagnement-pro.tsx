@@ -5,21 +5,21 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { Building2, Check, ClipboardCheck, Handshake, MessageSquareText, Scale, Sparkles } from "lucide-react";
 import { CRITERES, type CritereKey } from "@/lib/data";
-import { CLES, type Dossier, EQUIPE_INTERNE_ID, INTERVENANTS, genererPlan, maintenant, nomIntervenant } from "@/lib/espace";
+import { EQUIPE_INTERNE_ID, INTERVENANTS, genererPlan, maintenant, nomIntervenant } from "@/lib/espace";
 import { formatDate, formatScore } from "@/lib/format";
 import { cn } from "@/lib/site";
-import { useStockage } from "@/lib/stockage";
 import { assignerAgent } from "@/lib/regles";
 import { CRITERE_ICONS } from "@/components/ui";
 import { Chargement } from "@/components/espace/ui";
 import { EntetePro, ProgressBarPro, ToastPro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 const AUTO = "auto";
 
 /** Accompagnement : demande (équipes ou partenaire) puis suivi du plan d'action jusqu'au réaudit. */
 export function AccompagnementPro() {
   const router = useRouter();
-  const [dossier, setDossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier, setDossier] = useDossierPro();
   const [mode, setMode] = useState<"nous" | "partenaire">("nous");
   const [partenaire, setPartenaire] = useState(AUTO);
   const [besoins, setBesoins] = useState<CritereKey[]>([]);

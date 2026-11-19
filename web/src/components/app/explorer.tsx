@@ -4,13 +4,13 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check, ChevronDown, List, Map as MapIcon, MapPin, RotateCcw, SearchX, Star } from "lucide-react";
-import { type Etablissement, QUARTIERS_PAR_VILLE, SECTEURS, type Secteur, noteMoyenne } from "@/lib/data";
-import type { Gestion } from "@/lib/admin";
-import { CLES } from "@/lib/espace";
-import { distanceKm, normaliser } from "@/lib/format";
+import { ArrowLeft, BrushCleaning, Check, ChevronDown, List, Map as MapIcon, MapPin, RotateCcw, SearchX, Star } from "lucide-react";
+import { type Etablissement, type Secteur, noteMoyenne } from "@/lib/data";
+import { distanceKm, formatScore, normaliser } from "@/lib/format";
+import { fmt, secteurPluriel, tv } from "@/lib/langue";
+import { useCatalogue } from "@/components/catalogue";
+import { useLangue } from "@/components/langue";
 import { estOuvert } from "@/lib/horaires";
-import { useStockage } from "@/lib/stockage";
 import { cn } from "@/lib/site";
 import { useHorloge } from "@/lib/use-config";
 import { Modal } from "@/components/modal";
@@ -26,14 +26,15 @@ const CarteExplorer = dynamic(() => import("@/components/app/carte-explorer"), {
 
 const SECTEURS_CHIPS: Secteur[] = ["restauration", "hotellerie", "sante"];
 const NOTES_MIN = [4.0, 4.5, 4.8];
-const QUARTIERS = QUARTIERS_PAR_VILLE["Abidjan"] ?? [];
 
 export function Explorer({ etablissements }: { etablissements: Etablissement[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const [gestion] = useStockage<Gestion>(CLES.gestion);
+  const { gestion, quartiersParVille } = useCatalogue();
+  const QUARTIERS = quartiersParVille["Abidjan"] ?? [];
   const { aujourdhui } = useHorloge();
+  const { langue, t, locale } = useLangue();
 
   const secteur = params.get("secteur") as Secteur | null;
   const quartier = params.get("quartier");
@@ -91,14 +92,14 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
     <div className="flex h-[calc(100dvh-5rem)] flex-col lg:h-[calc(100dvh-4rem)]">
       {/* En-tête */}
       <header className="flex items-center justify-between px-5 pt-4">
-        <Link href="/" aria-label="Retour à l'accueil" className="grid size-10 place-items-center rounded-full text-ink transition active:scale-95">
+        <Link href="/" aria-label={t.retourAccueil} className="grid size-10 place-items-center rounded-full text-ink transition active:scale-95">
           <ArrowLeft className="size-5" aria-hidden />
         </Link>
-        <h1 className="font-display text-lg font-extrabold text-ink">Explorer</h1>
+        <h1 className="font-display text-lg font-extrabold text-ink">{t.explorerNav}</h1>
         <button
           type="button"
           onClick={() => maj({ vue: vue === "carte" ? "liste" : null })}
-          aria-label={vue === "carte" ? "Passer en vue liste" : "Passer en vue carte"}
+          aria-label={vue === "carte" ? t.vueListe : t.vueCarte}
           className="grid size-10 place-items-center rounded-full text-ink transition active:scale-95"
         >
           {vue === "carte" ? <List className="size-5" aria-hidden /> : <MapIcon className="size-5" aria-hidden />}
@@ -106,22 +107,22 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
       </header>
 
       {/* Puces secteur */}
-      <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto px-5" role="group" aria-label="Secteurs">
+      <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto px-5" role="group" aria-label={t.secteursAria}>
         <ChipSecteur actif={!secteur} onClick={() => maj({ secteur: null, sel: null })}>
-          Tous
+          {t.tous}
         </ChipSecteur>
         {SECTEURS_CHIPS.map((s) => (
           <ChipSecteur key={s} actif={secteur === s} onClick={() => maj({ secteur: s, sel: null })}>
-            {SECTEURS[s].label}
+            {secteurPluriel(s, langue)}
           </ChipSecteur>
         ))}
       </div>
 
       {/* Filtres */}
-      <div className="no-scrollbar mt-2.5 flex items-center gap-2 overflow-x-auto px-5 pb-1" role="group" aria-label="Filtres">
-        <ChipFiltre actif={!!quartier} label={quartier ?? "Quartier"} onClick={() => setPanneau("quartier")} fleche />
-        <ChipFiltre actif={noteMin !== undefined} label={noteMin !== undefined ? `${String(noteMin).replace(".", ",")}+` : "Note"} onClick={() => setPanneau("note")} fleche />
-        <ChipFiltre actif={ouvert} label="Ouvert maintenant" onClick={() => maj({ ouvert: ouvert ? null : "1", sel: null })} />
+      <div className="no-scrollbar mt-2.5 flex items-center gap-2 overflow-x-auto px-5 pb-1" role="group" aria-label={t.filtresAria}>
+        <ChipFiltre actif={!!quartier} label={quartier ?? t.quartier} onClick={() => setPanneau("quartier")} fleche />
+        <ChipFiltre actif={noteMin !== undefined} label={noteMin !== undefined ? `${formatScore(noteMin, locale)}+` : t.note} onClick={() => setPanneau("note")} fleche />
+        <ChipFiltre actif={ouvert} label={t.ouvertMaintenant} onClick={() => maj({ ouvert: ouvert ? null : "1", sel: null })} />
         <button
           type="button"
           onClick={() => maj({ reservation: reservation ? null : "1", sel: null })}
@@ -132,12 +133,12 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
           )}
         >
           {reservation && <Check className="size-3.5" aria-hidden />}
-          Réservation en ligne
+          {t.resaEnLigne}
         </button>
         {nbFiltres > 0 && (
           <button type="button" onClick={reinitialiser} className="inline-flex shrink-0 items-center gap-1 px-1.5 py-2 text-xs font-bold text-muted transition active:scale-95">
             <RotateCcw className="size-3.5" aria-hidden />
-            Réinitialiser
+            {t.reinitialiser}
           </button>
         )}
       </div>
@@ -164,7 +165,7 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
               <CarteFlottante e={selectionne} position={position} onFermer={() => maj({ sel: null })} />
             ) : (
               <p className="mx-auto w-fit rounded-full bg-white/90 px-4 py-2 text-center text-xs font-bold text-ink shadow-card backdrop-blur">
-                {visibles.length} établissement{visibles.length > 1 ? "s" : ""} certifié{visibles.length > 1 ? "s" : ""} autour de vous
+                {tv(t.etabAutour, visibles.length)}
               </p>
             )}
           </div>
@@ -174,7 +175,7 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
           <div className="h-full overflow-y-auto px-5 pb-6">
             {carteKO && (
               <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-xs font-semibold text-ink">
-                <span>Carte indisponible — affichage en liste.</span>
+                <span>{t.carteIndispo}</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -184,18 +185,33 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
                   }}
                   className="shrink-0 font-bold text-bleu"
                 >
-                  Réessayer
+                  {t.reessayer}
                 </button>
               </div>
+            )}
+            {secteur === "services" && (
+              <Link
+                href="/autre"
+                className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-gradient-to-br from-primary to-[#2C4FB8] p-4 text-white shadow-card transition active:scale-[0.98]"
+              >
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/15">
+                  <BrushCleaning className="size-5" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-extrabold">{t.menageBanniereTitre}</span>
+                  <span className="block text-[11px] font-medium text-white/85">{t.menageBanniereDetail}</span>
+                </span>
+                <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-extrabold text-primary">{t.menageBanniereCta}</span>
+              </Link>
             )}
             {visibles.length === 0 ? (
               <EtatVide
                 Icon={SearchX}
-                titre="Aucun établissement ne correspond"
-                detail="Élargissez votre recherche : tous les établissements listés sont audités à 80 % et plus."
+                titre={t.aucunEtab}
+                detail={t.aucunEtabDetail}
                 action={
                   <button type="button" onClick={reinitialiser} className="btn-hero mt-2">
-                    Réinitialiser les filtres
+                    {t.reinitFiltres}
                   </button>
                 }
               />
@@ -203,10 +219,10 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
               <>
                 <div className="sticky top-0 z-10 flex items-center justify-between bg-white/95 py-2.5 backdrop-blur">
                   <p className="text-xs font-bold text-muted" aria-live="polite">
-                    {visibles.length} établissement{visibles.length > 1 ? "s" : ""} certifié{visibles.length > 1 ? "s" : ""}
+                    {tv(t.etabCompte, visibles.length)}
                   </p>
                   <label htmlFor="tri" className="sr-only">
-                    Trier par
+                    {t.trierPar}
                   </label>
                   <select
                     id="tri"
@@ -214,9 +230,9 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
                     onChange={(e) => maj({ tri: e.target.value === "avis" ? null : e.target.value })}
                     className="rounded-full border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink focus:border-primary focus:outline-none"
                   >
-                    <option value="avis">Les mieux notés</option>
+                    <option value="avis">{t.mieuxNotes}</option>
                     <option value="distance" disabled={!position}>
-                      Les plus proches
+                      {t.plusProches}
                     </option>
                   </select>
                 </div>
@@ -226,7 +242,7 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
                       <EtablissementCard etablissement={e} badgeRetire={!!gestion?.[e.slug]?.badgeRetire} />
                       {d !== null && (
                         <p className="mt-1.5 flex items-center gap-1 pl-1 text-[11px] font-semibold text-muted">
-                          <MapPin className="size-3" aria-hidden /> {d.toFixed(1).replace(".", ",")} km
+                          <MapPin className="size-3" aria-hidden /> {formatScore(d, locale)} km
                         </p>
                       )}
                     </li>
@@ -241,11 +257,11 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
           <div className="absolute inset-0 z-[550] flex items-center justify-center bg-surface/95 p-6">
             <EtatVide
               Icon={SearchX}
-              titre="Aucun établissement ne correspond"
-              detail="Élargissez votre recherche : tous les établissements listés sont audités à 80 % et plus."
+              titre={t.aucunEtab}
+              detail={t.aucunEtabDetail}
               action={
                 <button type="button" onClick={reinitialiser} className="btn-hero mt-2">
-                  Réinitialiser les filtres
+                  {t.reinitFiltres}
                 </button>
               }
             />
@@ -254,7 +270,7 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
       </div>
 
       {/* Panneaux de filtres */}
-      <Modal open={panneau === "quartier"} onClose={() => setPanneau(null)} title="Quartier">
+      <Modal open={panneau === "quartier"} onClose={() => setPanneau(null)} title={t.quartier}>
         <ul className="grid grid-cols-2 gap-2 pb-2">
           <li className="col-span-2">
             <button
@@ -265,7 +281,7 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
               }}
               className={cn("w-full rounded-2xl border px-4 py-3 text-left text-sm font-bold transition", !quartier ? "border-primary bg-primary text-white" : "border-line bg-white text-ink")}
             >
-              Tous les quartiers
+              {t.tousQuartiers}
             </button>
           </li>
           {QUARTIERS.map((q) => (
@@ -285,7 +301,7 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
         </ul>
       </Modal>
 
-      <Modal open={panneau === "note"} onClose={() => setPanneau(null)} title="Note minimale (avis clients)">
+      <Modal open={panneau === "note"} onClose={() => setPanneau(null)} title={t.noteMinTitre}>
         <ul className="space-y-2 pb-2">
           <li>
             <button
@@ -296,7 +312,7 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
               }}
               className={cn("w-full rounded-2xl border px-4 py-3 text-left text-sm font-bold transition", noteMin === undefined ? "border-primary bg-primary text-white" : "border-line bg-white text-ink")}
             >
-              Toutes les notes
+              {t.toutesNotes}
             </button>
           </li>
           {NOTES_MIN.map((n) => (
@@ -309,7 +325,7 @@ export function Explorer({ etablissements }: { etablissements: Etablissement[] }
                 }}
                 className={cn("w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition", noteMin === n ? "border-primary bg-primary text-white" : "border-line bg-white text-ink")}
               >
-                <Star className="mr-1 inline size-4 fill-or text-or" aria-hidden /> {String(n).replace(".", ",")} et plus
+                <Star className="mr-1 inline size-4 fill-or text-or" aria-hidden /> {fmt(t.etPlus, { n: formatScore(n, locale) })}
               </button>
             </li>
           ))}
@@ -356,6 +372,7 @@ function ChipFiltre({ actif, label, onClick, fleche }: { actif: boolean; label: 
 /* ---------- Carte flottante de l'établissement sélectionné ---------- */
 function CarteFlottante({ e, position, onFermer }: { e: Etablissement; position: [number, number] | null; onFermer: () => void }) {
   const router = useRouter();
+  const { t, locale } = useLangue();
   const debut = useRef<number | null>(null);
   const note = noteMoyenne(e.avis);
   const distance = position ? distanceKm(position, e.coords) : null;
@@ -381,8 +398,8 @@ function CarteFlottante({ e, position, onFermer }: { e: Etablissement; position:
         <div className="mt-1.5 flex items-center gap-3 text-xs">
           <span className="flex items-center gap-1 font-bold text-ink">
             <Star className="size-3.5 fill-or text-or" aria-hidden />
-            {note > 0 ? note.toFixed(1).replace(".", ",") : "—"}
-            <span className="font-normal text-muted">({e.avis.length} avis)</span>
+            {note > 0 ? formatScore(note, locale) : "—"}
+            <span className="font-normal text-muted">({tv(t.avisNb, e.avis.length)})</span>
           </span>
         </div>
       </div>
@@ -390,7 +407,7 @@ function CarteFlottante({ e, position, onFermer }: { e: Etablissement; position:
         <BoutonFavori slug={e.slug} plat className="-m-1" />
         {distance !== null && (
           <span className="flex items-center gap-1 text-[11px] font-semibold text-muted">
-            <MapPin className="size-3" aria-hidden /> {distance.toFixed(1).replace(".", ",")} km
+            <MapPin className="size-3" aria-hidden /> {formatScore(distance, locale)} km
           </span>
         )}
       </div>

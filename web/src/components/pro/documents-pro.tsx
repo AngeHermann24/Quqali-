@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { FilePlus2, Info } from "lucide-react";
-import { CLES, DOCUMENTS_REQUIS, type Dossier } from "@/lib/espace";
-import { useStockage } from "@/lib/stockage";
+import { DOCUMENTS_REQUIS } from "@/lib/espace";
 import { Chargement } from "@/components/espace/ui";
 import { EntetePro, ToastPro, UploadItem } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 /** Onglet Documents — liste des pièces, statuts, remplacement. */
 export function DocumentsPro() {
-  const [dossier, setDossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier, setDossier] = useDossierPro();
   const [toast, setToast] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const typeActif = useRef<string>("");

@@ -3,13 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Bell, Building2, Fingerprint, Globe, LogOut, Moon, Trash2, UserPlus, Users } from "lucide-react";
-import { CLES, type Dossier } from "@/lib/espace";
+import { CLES } from "@/lib/espace";
 import { SECTEURS } from "@/lib/data";
+import { LANGUES } from "@/lib/langue";
 import { ROLES_PRO, type ComptePro } from "@/lib/pro-demo";
 import { cn } from "@/lib/site";
 import { useStockage } from "@/lib/stockage";
 import { Chargement } from "@/components/espace/ui";
+import { ListeLangues, useLangue } from "@/components/langue";
 import { EntetePro, PanneauBas, ToastPro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 interface Membre {
   nom: string;
@@ -37,9 +40,11 @@ function Interrupteur({ actif, onChange, label }: { actif: boolean; onChange: ()
 export function ProfilPro() {
   const router = useRouter();
   const [compte, setCompte] = useStockage<ComptePro | null>(CLES.comptePro);
-  const [dossier, setDossier] = useStockage<Dossier | null>(CLES.dossier);
+  const [dossier, setDossier] = useDossierPro();
   const [equipe, setEquipe] = useStockage<Membre[]>(CLES.equipePro);
   const [sombre, setSombre] = useStockage<boolean>(CLES.sombrePro);
+  const { langue, setLangue, t, dir } = useLangue();
+  const [choixLangue, setChoixLangue] = useState(false);
   const [notifs, setNotifs] = useState(true);
   const [pin, setPin] = useState(true);
   const [inviter, setInviter] = useState(false);
@@ -72,8 +77,8 @@ export function ProfilPro() {
 
   return (
     <>
-      <EntetePro titre="Profil" />
-      <div className="space-y-4 px-5 pb-6">
+      <EntetePro titre={t.profil} />
+      <div className="space-y-4 px-5 pb-6" dir={dir}>
         {/* Responsable */}
         <div className="flex items-center gap-3.5 rounded-3xl border border-line bg-white p-4 shadow-card">
           <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary font-display text-lg font-bold text-white">{(compte?.responsable ?? "Q")[0]}</span>
@@ -86,7 +91,7 @@ export function ProfilPro() {
         {/* Établissement */}
         {dossier && (
           <section className="rounded-3xl border border-line bg-white p-4 shadow-card">
-            <p className="flex items-center gap-2 text-sm font-bold text-ink"><Building2 className="size-4 text-primary" aria-hidden /> Établissement</p>
+            <p className="flex items-center gap-2 text-sm font-bold text-ink"><Building2 className="size-4 text-primary" aria-hidden /> {t.etablissement}</p>
             <dl className="mt-3 space-y-2 text-sm">
               {[
                 ["Nom", dossier.nom],
@@ -106,9 +111,9 @@ export function ProfilPro() {
         {/* Équipe */}
         <section className="rounded-3xl border border-line bg-white p-4 shadow-card">
           <div className="flex items-center justify-between">
-            <p className="flex items-center gap-2 text-sm font-bold text-ink"><Users className="size-4 text-primary" aria-hidden /> Équipe</p>
+            <p className="flex items-center gap-2 text-sm font-bold text-ink"><Users className="size-4 text-primary" aria-hidden /> {t.equipe}</p>
             <button type="button" onClick={() => setInviter(true)} className="flex items-center gap-1.5 rounded-xl bg-bleu px-3 py-2 text-xs font-bold text-white transition active:scale-95">
-              <UserPlus className="size-3.5" aria-hidden /> Inviter
+              <UserPlus className="size-3.5" aria-hidden /> {t.inviter}
             </button>
           </div>
           <ul className="mt-3 space-y-2.5">
@@ -129,20 +134,22 @@ export function ProfilPro() {
         <section className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
           <ul className="divide-y divide-line">
             <li className="flex items-center justify-between gap-3 p-4">
-              <span className="flex items-center gap-3 text-sm font-semibold text-ink"><Bell className="size-4 text-primary" aria-hidden /> Notifications push, SMS et e-mail</span>
-              <Interrupteur actif={notifs} onChange={() => setNotifs(!notifs)} label="Notifications" />
+              <span className="flex items-center gap-3 text-sm font-semibold text-ink"><Bell className="size-4 text-primary" aria-hidden /> {t.notificationsPush}</span>
+              <Interrupteur actif={notifs} onChange={() => setNotifs(!notifs)} label={t.notifications} />
             </li>
             <li className="flex items-center justify-between gap-3 p-4">
-              <span className="flex items-center gap-3 text-sm font-semibold text-ink"><Fingerprint className="size-4 text-primary" aria-hidden /> Verrouillage (empreinte / PIN)</span>
-              <Interrupteur actif={pin} onChange={() => setPin(!pin)} label="Verrouillage" />
+              <span className="flex items-center gap-3 text-sm font-semibold text-ink"><Fingerprint className="size-4 text-primary" aria-hidden /> {t.verrouillagePin}</span>
+              <Interrupteur actif={pin} onChange={() => setPin(!pin)} label={t.verrouillage} />
+            </li>
+            <li>
+              <button type="button" onClick={() => setChoixLangue(true)} className="flex w-full items-center justify-between gap-3 p-4 transition hover:bg-surface">
+                <span className="flex items-center gap-3 text-sm font-semibold text-ink"><Globe className="size-4 text-primary" aria-hidden /> {t.langue}</span>
+                <span className="text-xs font-semibold text-muted">{LANGUES[langue].natif}</span>
+              </button>
             </li>
             <li className="flex items-center justify-between gap-3 p-4">
-              <span className="flex items-center gap-3 text-sm font-semibold text-ink"><Globe className="size-4 text-primary" aria-hidden /> Langue</span>
-              <span className="text-xs font-semibold text-muted">Français</span>
-            </li>
-            <li className="flex items-center justify-between gap-3 p-4">
-              <span className="flex items-center gap-3 text-sm font-semibold text-ink"><Moon className="size-4 text-primary" aria-hidden /> Mode sombre</span>
-              <Interrupteur actif={sombre ?? false} onChange={() => setSombre(!sombre)} label="Mode sombre" />
+              <span className="flex items-center gap-3 text-sm font-semibold text-ink"><Moon className="size-4 text-primary" aria-hidden /> {t.sombre}</span>
+              <Interrupteur actif={sombre ?? false} onChange={() => setSombre(!sombre)} label={t.sombre} />
             </li>
           </ul>
         </section>
@@ -156,10 +163,10 @@ export function ProfilPro() {
           }}
           className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-danger/40 font-bold text-danger transition active:scale-[0.98]"
         >
-          <LogOut className="size-4" aria-hidden /> Se déconnecter
+          <LogOut className="size-4" aria-hidden /> {t.deconnexion}
         </button>
         <button type="button" onClick={() => setSupprimer(true)} className="flex w-full items-center justify-center gap-2 py-2 text-xs font-semibold text-muted">
-          <Trash2 className="size-3.5" aria-hidden /> Supprimer mon compte
+          <Trash2 className="size-3.5" aria-hidden /> {t.supprimerCompte}
         </button>
       </div>
 
@@ -184,6 +191,11 @@ export function ProfilPro() {
         <button type="button" onClick={envoyer} disabled={!invitationValide} className="mt-4 h-12 w-full rounded-2xl bg-success font-bold text-white transition active:scale-[0.98] disabled:bg-line disabled:text-muted">
           Envoyer l&apos;invitation
         </button>
+      </PanneauBas>
+
+      {/* Choix de la langue */}
+      <PanneauBas ouvert={choixLangue} titre={t.choisirLangue} onFermer={() => setChoixLangue(false)}>
+        <ListeLangues langue={langue} onChoisir={(l) => { setLangue(l); setChoixLangue(false); }} />
       </PanneauBas>
 
       {/* Suppression */}

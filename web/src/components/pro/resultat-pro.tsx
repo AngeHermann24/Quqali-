@@ -4,15 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Download, Flag, Handshake, PartyPopper } from "lucide-react";
 import { CRITERES } from "@/lib/data";
-import { CLES, type Dossier, ajouterJours, delaiReaudit } from "@/lib/espace";
+import { type Dossier, ajouterJours, delaiReaudit } from "@/lib/espace";
 import { formatDate, formatScore } from "@/lib/format";
 import { BLEU, BLANC, ENCRE, GRIS, SURFACE, VERT, assemblerPdf, couleur, creerCanvas, dateFr, largeur } from "@/lib/pdf";
 import { SITE } from "@/lib/site";
-import { useStockage } from "@/lib/stockage";
 import { CRITERE_ICONS } from "@/components/ui";
 import { Chargement } from "@/components/espace/ui";
 import { EntetePro, ProgressBarPro, RingScorePro } from "@/components/pro/ui";
 import { cn } from "@/lib/site";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 function telecharger(octets: Uint8Array, nom: string) {
   const url = URL.createObjectURL(new Blob([octets.buffer as ArrayBuffer], { type: "application/pdf" }));
@@ -70,7 +70,7 @@ const sur20 = (pct: number) => Math.round((pct / 5) * 10) / 10;
 /** Écran 5 — Résultat de l'audit : anneau animé, détail /20, points forts et à corriger. */
 export function ResultatPro() {
   const router = useRouter();
-  const [dossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier] = useDossierPro();
   if (dossier === undefined) return <Chargement />;
 
   if (!dossier?.audit)

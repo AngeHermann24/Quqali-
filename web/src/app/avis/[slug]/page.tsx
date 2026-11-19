@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ETABLISSEMENTS, getEtablissement } from "@/lib/data";
+import { ETABLISSEMENTS } from "@/lib/data";
+import { fichePublique } from "@/lib/db/catalogue";
 import { DonnerAvis } from "@/components/app/donner-avis";
 
 export function generateStaticParams() {
@@ -9,7 +10,7 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata(props: PageProps<"/avis/[slug]">): Promise<Metadata> {
-  const e = getEtablissement((await props.params).slug);
+  const e = await fichePublique((await props.params).slug);
   if (!e) return {};
   return { title: `Donner un avis — ${e.nom}` };
 }
@@ -23,7 +24,7 @@ export default function AvisPage(props: PageProps<"/avis/[slug]">) {
 }
 
 async function Contenu({ params }: { params: PageProps<"/avis/[slug]">["params"] }) {
-  const e = getEtablissement((await params).slug);
+  const e = await fichePublique((await params).slug);
   if (!e) notFound();
   return <DonnerAvis e={e} />;
 }

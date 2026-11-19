@@ -1,16 +1,15 @@
 "use client";
 
 import { Trophy } from "lucide-react";
-import { CLES, type Dossier } from "@/lib/espace";
-import { useStockage } from "@/lib/stockage";
 import { Chargement } from "@/components/espace/ui";
 import { AwardsView } from "@/components/awards/awards-view";
 import { EntetePro, StatusPillPro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 const SEUIL_NOMINATION = 85;
 
 export function AwardsPro() {
-  const [dossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier] = useDossierPro();
   if (dossier === undefined) return <Chargement />;
 
   const note = dossier?.audit?.global ?? 0;

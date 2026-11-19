@@ -1,0 +1,443 @@
+// Schéma Qualité+ — base Supabase (PostgreSQL) via Prisma.
+// Les statuts/secteurs restent des String (alignés sur les unions TS du code).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/* ---------- Comptes & rôles ---------- */
+
+// Miroir applicatif de auth.users (Supabase Auth). id = uuid auth.
+model Profil {
+  id        String   @id // uuid auth.users
+  email     String   @unique
+  nom       String
+  telephone String?
+  role      String   @default("usager") // usager | pro | admin | partenaire
+  creeLe    DateTime @default(now())
+  majLe     DateTime @updatedAt
+
+  avis              Avis[]
+  favoris           Favori[]
+  reservations      Reservation[]
+  notifications     Notification[]
+  demandesServices  DemandeService[]
+  dossier           Dossier?
+  dossierPartenaire DossierPartenaire?
+  ventes            VenteFormation[]
+}
+
+/* ---------- Catalogue public ---------- */
+
+model Etablissement {
+  id               String    @id @default(cuid())
+  slug             String    @unique
+  nom              String
+  secteur          String
+  sousType         String
+  ville            String
+  commune          String
+  quartier         String
+  adresse          String
+  lat              Float?
+  lng              Float?
+  pack             String    @default("basique") // basique | premium
+  aLaUne           Boolean   @default(false)
+  scores           Json // { hygiene, accueil, presentation, gouvernance }
+  dateAudit        DateTime
+  prochainControle DateTime
+  description      String
+  services         Json // string[]
+  horaires         Json // { jours, heures }[]
+  telephone        String
+  whatsapp         String
+  prix             String
+  awards           Json? // string[]
+  visite3d         String?
+  configReservation Json?
+
+  // Gestion admin (ex-CLES.gestion)
+  suspenduLe       DateTime?
+  badgeRetireLe    DateTime?
+  niveauForce      String? // excellent | bon | ameliorer
+
+  dossier   Dossier? @relation(fields: [dossierId], references: [id])
+  dossierId String?  @unique
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  avis         Avis[]
+  reservations Reservation[]
+  favoris      Favori[]
+  visites      Visite[]
+  missions     Mission[]
+  auditsPlanifies AuditPlanifie[]
+
+  @@index([secteur, ville])
+  @@index([suspenduLe])
+}
+
+/* ---------- Avis clients ---------- */
+
+model Avis {
+  id              String   @id @default(cuid())
+  etablissement   Etablissement @relation(fields: [etablissementId], references: [id], onDelete: Cascade)
+  etablissementId String
+  compte          Profil?  @relation(fields: [compteId], references: [id])
+  compteId        String?
+  auteur          String
+  date            DateTime @default(now())
+  note            Int // 1–5
+  criteres        Json? // Record<string, number>
+  personnel       Json? // Record<string, number>
+  commentaire     String
+  preuve          Json // { type: "reservation" | "code", ref? | code? }
+  statut          String   @default("en_verification") // publie | en_verification | rejete | signale
+  motifRejet      String?
+  reponse         String? // réponse publique de l'établissement
+
+  @@index([etablissementId, statut])
+  @@index([compteId])
+}
+
+// Code de visite remis au client (preuve pour laisser un avis).
+model Visite {
+  code            String   @id // ex. VIS-1234
+  etablissement   Etablissement @relation(fields: [etablissementId], references: [id], onDelete: Cascade)
+  etablissementId String
+  reservation     Reservation? @relation(fields: [reservationId], references: [id])
+  reservationId   String?  @unique
+  utiliseeLe      DateTime?
+  creeLe          DateTime @default(now())
+}
+
+/* ---------- Favoris ---------- */
+
+model Favori {
+  id              String   @id @default(cuid())
+  compte          Profil   @relation(fields: [compteId], references: [id], onDelete: Cascade)
+  compteId        String
+  etablissement   Etablissement @relation(fields: [etablissementId], references: [id], onDelete: Cascade)
+  etablissementId String
+  creeLe          DateTime @default(now())
+
+  @@unique([compteId, etablissementId])
+}
+
+/* ---------- Réservations ---------- */
+
+model Reservation {
+  id              String   @id @default(cuid())
+  reference       String   @unique
+  etablissement   Etablissement @relation(fields: [etablissementId], references: [id])
+  etablissementId String
+  compte          Profil?  @relation(fields: [compteId], references: [id])
+  compteId        String?
+  secteur         String
+  clientNom       String
+  clientTelephone String
+  clientEmail     String?
+  commentaire     String?
+  // Détails par secteur : date/heure/couverts, arrivee/depart/chambreId, praticienId/motif…
+  details         Json
+  statut          String   @default("en_attente") // en_attente | confirmee | refusee | annulee | honoree | absent
+  montant         Int?
+  motifRefus      String?
+  historique      Json // { statut, date }[]
+  creeLe          DateTime @default(now())
+  majLe           DateTime @updatedAt
+
+  visite          Visite?
+
+  @@index([compteId])
+  @@index([etablissementId, statut])
+  @@index([clientTelephone])
+}
+
+/* ---------- Notifications ---------- */
+
+model Notification {
+  id      String   @id @default(cuid())
+  compte  Profil   @relation(fields: [compteId], references: [id], onDelete: Cascade)
+  compteId String
+  titre   String
+  detail  String
+  href    String?
+  ton     String   @default("neutre")
+  lue     Boolean  @default(false)
+  creeLe  DateTime @default(now())
+
+  @@index([compteId, lue])
+}
+
+/* ---------- Dossiers de certification (espace pro) ---------- */
+
+model Dossier {
+  id          String  @id @default(cuid())
+  compte      Profil? @relation(fields: [compteId], references: [id])
+  compteId    String? @unique
+  nom         String
+  secteur     String
+  sousType    String
+  description String
+  ville       String
+  commune     String
+  quartier    String
+  adresse     String
+  lat         Float?
+  lng         Float?
+  responsable Json // { nom, fonction, telephone, email }
+  horaires    Json?
+  capacites   Json?
+  prepaAudit  Json? // checklist préparation
+  parcours    String // "A" | "B"
+  statut      String  @default("soumis") // soumis | en_audit | admis | refuse
+  historique  Json // { statut, date }[]
+  agentAuditId String?
+  creneauAudit DateTime?
+  audit       Json? // { date, scores, global }
+  visite3d    String?
+  services    Json? // puces affichées sur la fiche
+  modifications Json? // journal post-publication
+  creeLe      DateTime @default(now())
+  majLe       DateTime @updatedAt
+
+  etablissement  Etablissement? // fiche publiée (liée à l'admission)
+  documents      DocumentJoint[]
+  accompagnement Accompagnement?
+  abonnement     Abonnement?
+  transactions   Transaction[]
+  membres        MembreEquipe[]
+  rapports       Rapport[]
+  messages       Message[]
+  reponsesAvis   ReponseAvis[]
+
+  @@index([statut])
+}
+
+model DocumentJoint {
+  id        String  @id @default(cuid())
+  dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  dossierId String
+  type      String // rccm | licence | photos…
+  nom       String // nom du fichier
+  chemin    String? // clé Supabase Storage (upload réel)
+
+  @@index([dossierId])
+}
+
+model Accompagnement {
+  id               String   @id @default(cuid())
+  dossier          Dossier  @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  dossierId        String   @unique
+  mode             String // "nous" | "partenaire"
+  accompagnateurId String? // intervenant ou équipe interne
+  besoins          Json // CritereKey[]
+  disponibilites   String
+  message          String
+  dateDemande      DateTime
+  pretLe           DateTime?
+  dateReaudit      DateTime?
+  agentReauditId   String?
+
+  actions ActionPlan[]
+}
+
+model ActionPlan {
+  id               String   @id @default(cuid())
+  accompagnement   Accompagnement @relation(fields: [accompagnementId], references: [id], onDelete: Cascade)
+  accompagnementId String
+  critere          String
+  action           String
+  echeance         DateTime
+  fait             Boolean  @default(false)
+}
+
+// Réponse de l'établissement à un avis client.
+model ReponseAvis {
+  id        String  @id @default(cuid())
+  dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  dossierId String
+  avisId    String  @unique
+  texte     String
+  date      DateTime @default(now())
+}
+
+model MembreEquipe {
+  id        String  @id @default(cuid())
+  dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  dossierId String
+  nom       String
+  tel       String
+  role      String // gerant | reception | cuisine…
+}
+
+/* ---------- Abonnements & paiements ---------- */
+
+model Abonnement {
+  id                String   @id @default(cuid())
+  dossier           Dossier  @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  dossierId         String   @unique
+  pack              String // basique | premium
+  periodicite       String // mensuel | annuel
+  debut             DateTime
+  fin               DateTime
+  moyen             String // orange | mtn | wave | carte
+  compte            String // numéro/carte masquée
+  renouvellementAuto Boolean @default(false)
+}
+
+model Transaction {
+  id           String   @id @default(cuid())
+  reference    String   @unique
+  dossier      Dossier? @relation(fields: [dossierId], references: [id])
+  dossierId    String?
+  date         DateTime @default(now())
+  type         String // souscription | renouvellement | renouvellement_auto | changement
+  pack         String
+  periodicite  String
+  periodeDebut DateTime
+  periodeFin   DateTime
+  lignes       Json // { libelle, montant }[]
+  montant      Int // FCFA
+  moyen        String
+  compte       String
+  statut       String // reussi | echoue
+  motif        String?
+  facture      String? // numéro de facture
+
+  @@index([date])
+  @@index([statut])
+}
+
+model VenteFormation {
+  id          String   @id @default(cuid())
+  compte      Profil?  @relation(fields: [compteId], references: [id])
+  compteId    String?
+  formationId String
+  date        DateTime @default(now())
+  moyen       String
+}
+
+/* ---------- Intervenants (agents & accompagnateurs) ---------- */
+
+model Intervenant {
+  id        String @id
+  nom       String
+  roles     Json // ["agent", "accompagnateur"]
+  secteurs  Json // Secteur[]
+  zones     Json // string[] (communes)
+  compteId  String? // lien éventuel vers un compte partenaire
+}
+
+// Audits planifiés par l'admin (ex-AUDITS_PROPOSES + affectations).
+model AuditPlanifie {
+  id              String   @id @default(cuid())
+  etablissement   Etablissement @relation(fields: [etablissementId], references: [id])
+  etablissementId String
+  type            String // "Contrôle annuel" | "Contrôle inopiné"
+  date            DateTime
+  agentId         String? // affectation
+
+  @@index([date])
+}
+
+/* ---------- Partenaires & missions ---------- */
+
+model DossierPartenaire {
+  id             String  @id @default(cuid())
+  compte         Profil? @relation(fields: [compteId], references: [id])
+  compteId       String? @unique
+  nom            String
+  telephone      String
+  email          String
+  secteurs       Json // Secteur[]
+  zones          Json // string[]
+  experience     Int // années
+  certifications String
+  references     String
+  agentHabilite  Boolean @default(false)
+  documents      Json // { type, nom }[]
+  statut         String  @default("soumis") // soumis | entretien | valide | refuse
+  historique     Json
+  creeLe         DateTime @default(now())
+  majLe          DateTime @updatedAt
+
+  missions       Mission[]
+}
+
+model Mission {
+  id               String   @id @default(cuid())
+  partenaire       DossierPartenaire? @relation(fields: [partenaireId], references: [id])
+  partenaireId     String?
+  etablissement    Etablissement? @relation(fields: [etablissementId], references: [id])
+  etablissementId  String?
+  etablissementNom String
+  secteur          String
+  commune          String
+  diagnostic       Json // Scores
+  besoins          Json // CritereKey[]
+  demandeLe        DateTime
+  statut           String   @default("proposee") // proposee | en_cours | pret | terminee | refusee
+  faits            Json // string[] — ids d'actions du plan réalisées
+  seances          Json // { date, objet, compteRendu }[]
+  accepteeLe       DateTime?
+  pretLe           DateTime?
+  agentReauditId   String?
+  resultatReaudit  Float?
+  majLe            DateTime @updatedAt
+}
+
+/* ---------- Services « Autre » (ménage, ateliers…) ---------- */
+
+model DemandeService {
+  id        String   @id @default(cuid())
+  compte    Profil?  @relation(fields: [compteId], references: [id])
+  compteId  String?
+  service   String // menage | atelier | …
+  type      String // sous-type de besoin
+  nom       String
+  telephone String
+  quartier  String
+  statut    String   @default("nouvelle") // nouvelle | en_cours | traitee | annulee
+  creeLe    DateTime @default(now())
+}
+
+/* ---------- Rapports IA & messages ---------- */
+
+model Rapport {
+  id        String   @id @default(cuid())
+  dossier   Dossier? @relation(fields: [dossierId], references: [id])
+  dossierId String?
+  mois      String // "AAAA-MM"
+  contenu   Json // structure du rapport
+  source    String   @default("demo") // ia | demo
+  creeLe    DateTime @default(now())
+}
+
+// Journal des notifications SMS/e-mail envoyées (ex-CLES.messages).
+model Message {
+  id           String   @id @default(cuid())
+  dossier      Dossier? @relation(fields: [dossierId], references: [id])
+  dossierId    String?
+  destinataire String
+  type         String // sms | email | push
+  corps        String
+  envoyeLe     DateTime @default(now())
+}
+
+/* ---------- Configuration ---------- */
+
+// Paramètres admin : tarifs, remises, grâce… (ex-CLES.config).
+model Config {
+  cle    String   @id // "tarifs" | "reservation_defaut"…
+  valeur Json
+  majLe  DateTime @updatedAt
+}

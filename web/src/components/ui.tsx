@@ -1,6 +1,9 @@
 import { BadgeCheck, BedDouble, Briefcase, Bus, GraduationCap, Landmark, type LucideIcon, Shirt, ShoppingBag, SprayCan, HandHeart, Star, Stethoscope, UtensilsCrossed } from "lucide-react";
 import type { CritereKey, Secteur } from "@/lib/data";
 import { formatScore } from "@/lib/format";
+import { type NiveauQualite, niveauScore } from "@/lib/scores";
+import { fmt } from "@/lib/langue";
+import { useLangue } from "@/components/langue";
 import { cn } from "@/lib/site";
 
 export const SECTEUR_ICONS: Record<Secteur, LucideIcon> = {
@@ -20,17 +23,21 @@ export const CRITERE_ICONS: Record<CritereKey, LucideIcon> = {
   gouvernance: Landmark,
 };
 
-export function CertifiedBadge({ size = "sm", className }: { size?: "sm" | "lg"; className?: string }) {
+export function CertifiedBadge({ size = "sm", className, score, niveau: niveauProp }: { size?: "sm" | "lg"; className?: string; score?: number; niveau?: NiveauQualite }) {
+  const { t } = useLangue();
+  const niveau = niveauProp ?? (score === undefined ? null : niveauScore(score));
+  const texte = niveau === "excellent" ? t.niveauExcellent : niveau === "bon" ? t.niveauBon : niveau === "ameliorer" ? t.niveauAmeliorer : t.badgeCertifie;
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full bg-success font-semibold text-white shadow-sm",
+        "inline-flex items-center gap-1.5 rounded-full font-semibold text-white shadow-sm",
+        niveau === "excellent" ? "bg-primary" : niveau === "ameliorer" ? "bg-danger" : "bg-success",
         size === "lg" ? "px-3.5 py-1.5 text-sm" : "px-2.5 py-1 text-xs",
         className,
       )}
     >
       <BadgeCheck className={size === "lg" ? "size-4" : "size-3.5"} aria-hidden />
-      Qualité certifiée
+      {texte}
     </span>
   );
 }
@@ -39,21 +46,28 @@ export function PremiumTag({ className }: { className?: string }) {
   return <span className={cn("chip bg-white/95 font-semibold text-primary ring-1 ring-primary/15", className)}>Premium</span>;
 }
 
-export function ScorePill({ value, className }: { value: number; className?: string }) {
+export function ScorePill({ value, className, niveau: niveauProp }: { value: number; className?: string; niveau?: NiveauQualite }) {
+  const { t, locale } = useLangue();
+  const niveau = niveauProp ?? niveauScore(value);
   return (
     <span
-      className={cn("inline-flex shrink-0 items-baseline rounded-lg bg-success-soft px-2 py-1 font-bold text-success-dark", className)}
-      title="Note de gouvernance (audit sur place)"
+      className={cn(
+        "inline-flex shrink-0 items-baseline rounded-lg px-2 py-1 font-bold",
+        niveau === "excellent" ? "bg-primary-soft text-primary" : niveau === "ameliorer" ? "bg-red-50 text-danger" : "bg-success-soft text-success-dark",
+        className,
+      )}
+      title={t.noteGouvernance}
     >
-      {formatScore(value)}
+      {formatScore(value, locale)}
       <span className="ml-0.5 text-xs">%</span>
     </span>
   );
 }
 
 export function Stars({ value, size = "sm" }: { value: number; size?: "sm" | "md" }) {
+  const { t, locale } = useLangue();
   return (
-    <span className="inline-flex items-center gap-0.5" aria-label={`${formatScore(value)} sur 5`}>
+    <span className="inline-flex items-center gap-0.5" aria-label={fmt(t.etoilesSur5, { n: formatScore(value, locale) })}>
       {[1, 2, 3, 4, 5].map((i) => (
         <Star
           key={i}

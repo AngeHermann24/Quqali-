@@ -26,10 +26,10 @@ import {
   Users,
   UtensilsCrossed,
 } from "lucide-react";
-import { ETABLISSEMENTS, type Etablissement, type Secteur, noteMoyenne } from "@/lib/data";
+import { type Etablissement, type Secteur, noteMoyenne } from "@/lib/data";
 import { CLES } from "@/lib/espace";
 import { formatFCFA } from "@/lib/facture-pdf";
-import { distanceKm, itineraire } from "@/lib/format";
+import { distanceKm, formatDate, formatScore, itineraire } from "@/lib/format";
 import { fichierIcs } from "@/lib/ics";
 import {
   type Demande,
@@ -41,7 +41,9 @@ import {
   disponibilitesSante,
   nuits,
 } from "@/lib/reservation";
-import { PREPOSITION_NOM, RESERVER_PAR_SECTEUR } from "@/lib/reserver-config";
+import { useCatalogue } from "@/components/catalogue";
+import { fmt, tv, type CleAppFn, type CleStr } from "@/lib/langue";
+import { useLangue } from "@/components/langue";
 import { useStockage } from "@/lib/stockage";
 import { cn } from "@/lib/site";
 import { useHorloge } from "@/lib/use-config";
@@ -52,10 +54,48 @@ import { useReservations } from "@/components/reservation/use-reservations";
 import { useFavoris } from "@/components/app/favoris";
 
 const GALERIE_TOTAL = 15; // même galerie simulée que la fiche
-const dateLongue = (date: string) =>
-  new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
+const dateLongue = (date: string, locale = "fr-FR") =>
+  new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
     .format(new Date(`${date}T00:00:00Z`))
     .replace(/^./, (c) => c.toUpperCase());
+
+/** Libellés de l'écran Réservation par secteur — remplace reserver-config.ts (français fixe). */
+const TITRE_SECTEUR: Record<Secteur, CleStr> = {
+  restauration: "resaTitreTable",
+  hotellerie: "resaTitreChambre",
+  sante: "resaTitreRdv",
+  services: "resaTitreRdv",
+  education: "resaTitreGenerique",
+  commerce: "resaTitreGenerique",
+  transport: "resaTitreGenerique",
+};
+const OFFRE_SECTEUR: Record<Secteur, CleStr> = {
+  restauration: "offreMenu",
+  hotellerie: "offreChambres",
+  sante: "offrePraticiens",
+  services: "offreServices",
+  education: "offreGenerique",
+  commerce: "offreGenerique",
+  transport: "offreGenerique",
+};
+const PERS_SECTEUR: Record<Secteur, CleStr> = {
+  restauration: "nbPersonnesTitre",
+  hotellerie: "chambreVoyageurs",
+  sante: "specialiteTitre",
+  services: "nbPersonnesTitre",
+  education: "nbPersonnesTitre",
+  commerce: "nbPersonnesTitre",
+  transport: "nbPersonnesTitre",
+};
+const UNITE_SECTEUR: Record<Secteur, CleAppFn> = {
+  restauration: "nbCouverts",
+  hotellerie: "voyageursNb",
+  sante: "nbPersonnes",
+  services: "nbPersonnes",
+  education: "nbPersonnes",
+  commerce: "nbPersonnes",
+  transport: "nbPersonnes",
+};
 const ICONES_ONGLETS: Partial<Record<Secteur, typeof UtensilsCrossed>> = {
   restauration: UtensilsCrossed,
   hotellerie: BedDouble,
@@ -67,14 +107,13 @@ type Panneau = "date" | "depart" | "heure" | "personnes" | "chambre" | "speciali
 export function Reserver({ e }: { e: Etablissement }) {
   const router = useRouter();
   const params = useSearchParams();
+  const { t, locale } = useLangue();
   const { aujourdhui } = useHorloge();
   const { compte, charge: compteCharge } = useCompteClient();
   const { reservations, config, creer, changer, charge } = useReservations(e.slug, e.nom, e.secteur);
   const { estFavori, toggle, charge: favCharge } = useFavoris();
   const [, setToutes] = useStockage<Record<string, Reservation[]>>(CLES.reservations);
 
-  const cfg = RESERVER_PAR_SECTEUR[e.secteur];
-  const prepo = PREPOSITION_NOM[e.secteur];
   const premium = e.pack === "premium";
   const moyenne = noteMoyenne(e.avis);
   const modifId = params.get("modifier");
@@ -186,9 +225,9 @@ export function Reserver({ e }: { e: Etablissement }) {
   const creneauxJour = useMemo(() => {
     if (!date || e.secteur === "hotellerie") return [];
     return e.secteur === "sante"
-      ? disponibilitesSante(config, praticienId, date, reservations, maintenant).map((c) => ({ service: "Créneaux", heure: c.heure, ok: c.libre }))
+      ? disponibilitesSante(config, praticienId, date, reservations, maintenant).map((c) => ({ service: t.creneaux, heure: c.heure, ok: c.libre }))
       : disponibilitesRestaurant(config, date, reservations, maintenant).map((c) => ({ service: c.service, heure: c.heure, ok: c.restants >= adultes + enfants }));
-  }, [date, e.secteur, config, praticienId, reservations, maintenant, adultes, enfants]);
+  }, [date, e.secteur, config, praticienId, reservations, maintenant, adultes, enfants, t]);
 
   const dispoHotel = useMemo(
     () => (e.secteur === "hotellerie" && date && depart ? disponibilitesHotel(config, date, depart, reservations) : []),
@@ -210,8 +249,8 @@ export function Reserver({ e }: { e: Etablissement }) {
     return indispo;
   })();
 
-  const texteEnfants = enfants > 0 ? ` · ${enfants} enfant${enfants > 1 ? "s" : ""}` : "";
-  const personnesTexte = `${adultes} adulte${adultes > 1 ? "s" : ""}${texteEnfants}`;
+  const texteEnfants = enfants > 0 ? ` · ${tv(t.enfantNb, enfants)}` : "";
+  const personnesTexte = `${tv(t.adulteNb, adultes)}${texteEnfants}`;
   const chambreChoisie = config.hotel.chambres.find((c) => c.id === chambreId);
   const praticienChoisi = config.sante.praticiens.find((p) => p.id === praticienId);
   const acompte = config.acompteRequis ?? 0;
@@ -258,7 +297,7 @@ export function Reserver({ e }: { e: Etablissement }) {
         r.client.telephone.replace(/\D/g, "").slice(-8) === tel &&
         (e.secteur === "hotellerie" ? r.arrivee === date && r.depart === depart : r.date === date && r.heure === heure),
     );
-    if (doublon) return setErreurResa("Vous avez déjà une réservation à cette date et cette heure chez cet établissement.");
+    if (doublon) return setErreurResa(t.dejaUneResa);
     if (acompte > 0) {
       // Étape de paiement (Orange Money, MTN MoMo, Wave, carte) — à implémenter avant activation de acompteRequis.
     }
@@ -320,13 +359,13 @@ export function Reserver({ e }: { e: Etablissement }) {
         <span className="grid size-16 place-items-center rounded-full bg-surface text-muted">
           <CalendarDays className="size-7" aria-hidden />
         </span>
-        <h1 className="mt-5 font-display text-xl font-extrabold text-ink">Réservation indisponible</h1>
-        <p className="mt-2 max-w-xs text-sm text-muted">La réservation en ligne n&apos;est pas disponible pour {e.nom}. Vous pouvez appeler l&apos;établissement.</p>
+        <h1 className="mt-5 font-display text-xl font-extrabold text-ink">{t.resaIndispo}</h1>
+        <p className="mt-2 max-w-xs text-sm text-muted">{fmt(t.resaIndispoTexte, { n: e.nom })}</p>
         <a href={`tel:${e.telephone.replace(/\s/g, "")}`} className="btn-hero mt-6 w-full max-w-xs">
-          <Phone className="size-5" aria-hidden /> Appeler l&apos;établissement
+          <Phone className="size-5" aria-hidden /> {t.appelerEtab}
         </a>
         <Link href={`/etablissements/${e.slug}`} className="mt-4 text-sm font-bold text-bleu">
-          Retour à la fiche
+          {t.retourFiche}
         </Link>
       </div>
     );
@@ -336,10 +375,10 @@ export function Reserver({ e }: { e: Etablissement }) {
     const confirmee = statutLive === "confirmee";
     const pers =
       e.secteur === "hotellerie"
-        ? `${resultat.nbChambres ?? 1} × ${chambreChoisie?.nom ?? "chambre"} · ${resultat.voyageurs ?? 1} voyageur${(resultat.voyageurs ?? 1) > 1 ? "s" : ""}`
+        ? `${resultat.nbChambres ?? 1} × ${chambreChoisie?.nom ?? t.chambreDefaut} · ${tv(t.voyageursNb, resultat.voyageurs ?? 1)}`
         : e.secteur === "sante"
-          ? praticienChoisi?.specialite ?? "Consultation"
-          : `${resultat.couverts ?? adultes + enfants} ${cfg.unitePersonnes}`;
+          ? praticienChoisi?.specialite ?? t.consultation
+          : tv(t[UNITE_SECTEUR[e.secteur]], resultat.couverts ?? adultes + enfants);
     return (
       <div className="relative flex min-h-[85dvh] flex-col items-center overflow-hidden px-6 pt-10 pb-28 text-center">
         {/* Confettis bleus et verts */}
@@ -363,48 +402,48 @@ export function Reserver({ e }: { e: Etablissement }) {
           </svg>
         </span>
         <h1 className="mt-5 font-display text-2xl font-extrabold text-ink">
-          {modification ? "Modifications enregistrées" : confirmee ? "Réservation confirmée" : "Demande envoyée"}
+          {modification ? t.modifsEnregistrees : confirmee ? t.notifConfirmee : t.demandeEnvoyee}
         </h1>
         {!confirmee && !modification && (
           <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-muted" aria-live="polite">
-            <Clock className="size-4" aria-hidden /> Réponse attendue sous {Math.floor(rebours / 60)}:{String(rebours % 60).padStart(2, "0")}
+            <Clock className="size-4" aria-hidden /> {fmt(t.reponseAttendue, { n: `${Math.floor(rebours / 60)}:${String(rebours % 60).padStart(2, "0")}` })}
           </p>
         )}
-        {confirmee && !modification && <p className="mt-1.5 text-sm font-semibold text-success">Confirmation reçue — à bientôt !</p>}
+        {confirmee && !modification && <p className="mt-1.5 text-sm font-semibold text-success">{t.confirmationRecue}</p>}
 
         <div className="mt-6 w-full max-w-sm rounded-3xl border border-line bg-white p-5 text-left shadow-card">
           <p className="font-display font-bold text-ink">{e.nom}</p>
           <ul className="mt-3 space-y-2 text-sm">
             <li className="flex justify-between gap-3">
-              <span className="text-muted">Date</span>
-              <span className="font-semibold text-ink">{e.secteur === "hotellerie" ? `${dateLongue(resultat.arrivee!)} → ${dateLongue(resultat.depart!)}` : dateLongue(resultat.date!)}</span>
+              <span className="text-muted">{t.dateLabel}</span>
+              <span className="font-semibold text-ink">{e.secteur === "hotellerie" ? `${dateLongue(resultat.arrivee!, locale)} → ${dateLongue(resultat.depart!, locale)}` : dateLongue(resultat.date!, locale)}</span>
             </li>
             {resultat.heure && (
               <li className="flex justify-between gap-3">
-                <span className="text-muted">Heure</span>
+                <span className="text-muted">{t.heureLabel}</span>
                 <span className="font-semibold text-ink">{resultat.heure}</span>
               </li>
             )}
             <li className="flex justify-between gap-3">
-              <span className="text-muted">Personnes</span>
+              <span className="text-muted">{t.personnesLabel}</span>
               <span className="font-semibold text-ink">{pers}</span>
             </li>
             <li className="flex justify-between gap-3">
-              <span className="text-muted">Réservation</span>
+              <span className="text-muted">{t.reservationLabel}</span>
               <span className="font-mono text-xs font-bold text-primary">{resultat.reference}</span>
             </li>
           </ul>
         </div>
 
         <Link href="/reservations" className="btn-hero mt-7 w-full max-w-sm">
-          Voir mes réservations
+          {t.voirMesResas}
         </Link>
         <div className="mt-3 grid w-full max-w-sm grid-cols-2 gap-3">
           <button type="button" onClick={telechargerIcs} className="btn border border-line bg-white py-3 text-sm font-bold text-ink">
-            <CalendarDays className="size-4.5 text-primary" aria-hidden /> Ajouter au calendrier
+            <CalendarDays className="size-4.5 text-primary" aria-hidden /> {t.ajouterCalendrier}
           </button>
           <a href={itineraire(e.coords)} target="_blank" rel="noopener noreferrer" className="btn border border-line bg-white py-3 text-sm font-bold text-ink">
-            <Navigation className="size-4.5 text-bleu" aria-hidden /> Itinéraire
+            <Navigation className="size-4.5 text-bleu" aria-hidden /> {t.itineraire}
           </a>
         </div>
       </div>
@@ -412,10 +451,10 @@ export function Reserver({ e }: { e: Etablissement }) {
   }
 
   const onglets = [
-    { id: "presentation" as const, label: "Présentation", Icon: FileText },
-    { id: "offre" as const, label: cfg.ongletOffre, Icon: ICONES_ONGLETS[e.secteur] ?? List },
-    { id: "avis" as const, label: "Avis", Icon: Star },
-    { id: "reservation" as const, label: "Réservation", Icon: CalendarDays },
+    { id: "presentation" as const, label: t.presentation, Icon: FileText },
+    { id: "offre" as const, label: t[OFFRE_SECTEUR[e.secteur]], Icon: ICONES_ONGLETS[e.secteur] ?? List },
+    { id: "avis" as const, label: t.avis, Icon: Star },
+    { id: "reservation" as const, label: t.reservationsNav, Icon: CalendarDays },
   ];
 
   return (
@@ -425,7 +464,7 @@ export function Reserver({ e }: { e: Etablissement }) {
         <button
           type="button"
           onClick={() => (window.history.length > 1 ? router.back() : router.push(`/etablissements/${e.slug}`))}
-          aria-label="Retour"
+          aria-label={t.retour}
           className="grid size-10 place-items-center rounded-full text-ink transition active:scale-95"
         >
           <ArrowLeft className="size-5" aria-hidden />
@@ -440,7 +479,7 @@ export function Reserver({ e }: { e: Etablissement }) {
             toggle(e.slug);
             if (!favori) setEclat((x) => x + 1);
           }}
-          aria-label={favori ? "Retirer des favoris" : "Ajouter aux favoris"}
+          aria-label={favori ? t.retirerFavoris : t.ajouterFavoris}
           aria-pressed={favori}
           className="relative grid size-10 place-items-center rounded-full text-ink transition active:scale-90"
         >
@@ -472,16 +511,16 @@ export function Reserver({ e }: { e: Etablissement }) {
           </p>
           <p className="mt-1 flex items-center gap-1 text-xs">
             <Star className="size-3.5 fill-or text-or" aria-hidden />
-            <span className="font-bold text-ink">{moyenne > 0 ? moyenne.toFixed(1).replace(".", ",") : "—"}</span>
-            <span className="font-semibold text-bleu">({e.avis.length} avis)</span>
+            <span className="font-bold text-ink">{moyenne > 0 ? formatScore(moyenne, locale) : "—"}</span>
+            <span className="font-semibold text-bleu">({tv(t.avisNb, e.avis.length)})</span>
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {distance !== null && (
               <span className="chip border border-line bg-white text-[11px] font-semibold text-muted">
-                <MapPin className="size-3 text-primary" aria-hidden /> {distance.toFixed(1).replace(".", ",")} km
+                <MapPin className="size-3 text-primary" aria-hidden /> {distance.toLocaleString(locale, { maximumFractionDigits: 1 })} km
               </span>
             )}
-            <a href={`tel:${e.telephone.replace(/\s/g, "")}`} className="chip border border-line bg-white text-[11px] font-semibold text-muted transition active:scale-95" aria-label={`Appeler ${e.nom}`}>
+            <a href={`tel:${e.telephone.replace(/\s/g, "")}`} className="chip border border-line bg-white text-[11px] font-semibold text-muted transition active:scale-95" aria-label={fmt(t.appelerNom, { n: e.nom })}>
               <Phone className="size-3 text-success" aria-hidden /> {e.telephone}
             </a>
           </div>
@@ -489,7 +528,7 @@ export function Reserver({ e }: { e: Etablissement }) {
       </div>
 
       {/* ---------- Onglets ---------- */}
-      <div className="no-scrollbar mt-4 flex gap-1 overflow-x-auto px-5" role="tablist" aria-label="Sections de la fiche">
+      <div className="no-scrollbar mt-4 flex gap-1 overflow-x-auto px-5" role="tablist" aria-label={t.sectionsAria}>
         {onglets.map(({ id, label, Icon }) => (
           <button
             key={id}
@@ -513,7 +552,7 @@ export function Reserver({ e }: { e: Etablissement }) {
       <div className="px-5">
         {onglet === "presentation" && (
           <section className="mt-4 rounded-3xl border border-line bg-white p-5 shadow-card">
-            <h2 className="font-display text-lg font-bold text-ink">À propos</h2>
+            <h2 className="font-display text-lg font-bold text-ink">{t.aPropos}</h2>
             <p className="mt-2 text-sm leading-relaxed text-ink/85">{e.description}</p>
             <p className="mt-3 text-sm font-semibold text-ink">{e.prix}</p>
             <ul className="mt-3 flex flex-wrap gap-2">
@@ -524,7 +563,7 @@ export function Reserver({ e }: { e: Etablissement }) {
               ))}
             </ul>
             <Link href={`/etablissements/${e.slug}`} className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-bleu">
-              Voir la fiche complète <ChevronRight className="size-4" aria-hidden />
+              {t.voirFicheComplete} <ChevronRight className="size-4" aria-hidden />
             </Link>
           </section>
         )}
@@ -536,10 +575,10 @@ export function Reserver({ e }: { e: Etablissement }) {
             {e.avis.length > 0 ? (
               <>
                 <div className="flex items-center gap-4 rounded-3xl border border-line bg-white p-4 shadow-card">
-                  <p className="font-display text-4xl font-bold text-ink">{moyenne.toFixed(1).replace(".", ",")}</p>
+                  <p className="font-display text-4xl font-bold text-ink">{formatScore(moyenne, locale)}</p>
                   <div>
                     <Stars value={moyenne} size="md" />
-                    <p className="mt-1 text-xs text-muted">{e.avis.length} avis de clients vérifiés</p>
+                    <p className="mt-1 text-xs text-muted">{fmt(t.avisClientsVerifies, { n: e.avis.length })}</p>
                   </div>
                 </div>
                 <ul className="space-y-3">
@@ -549,7 +588,7 @@ export function Reserver({ e }: { e: Etablissement }) {
                         <span className="grid size-10 place-items-center rounded-full bg-primary-soft font-semibold text-primary">{a.auteur[0]}</span>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-ink">{a.auteur}</p>
-                          <p className="text-xs text-muted">{new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(`${a.date}T00:00:00Z`))}</p>
+                          <p className="text-xs text-muted">{formatDate(a.date, locale)}</p>
                         </div>
                         <Stars value={a.note} />
                       </div>
@@ -558,11 +597,11 @@ export function Reserver({ e }: { e: Etablissement }) {
                   ))}
                 </ul>
                 <Link href={`/etablissements/${e.slug}#avis`} className="flex items-center justify-center gap-1.5 rounded-2xl border border-line py-3 text-sm font-bold text-bleu">
-                  Voir tous les avis
+                  {t.voirTousAvis}
                 </Link>
               </>
             ) : (
-              <p className="rounded-3xl border border-dashed border-line bg-white p-8 text-center text-sm text-muted">Aucun avis pour le moment.</p>
+              <p className="rounded-3xl border border-dashed border-line bg-white p-8 text-center text-sm text-muted">{t.aucunAvis}</p>
             )}
           </section>
         )}
@@ -572,41 +611,41 @@ export function Reserver({ e }: { e: Etablissement }) {
             {/* ---------- Carte réservation ---------- */}
             <section className="rounded-3xl border border-line bg-white p-5 shadow-card">
               <h2 className="flex items-center gap-2 font-display text-lg font-bold text-ink">
-                <CalendarDays className="size-5.5 text-ink" aria-hidden /> {modification ? "Modifier la réservation" : cfg.titre}
+                <CalendarDays className="size-5.5 text-ink" aria-hidden /> {modification ? t.modifierResa : t[TITRE_SECTEUR[e.secteur]]}
               </h2>
-              <p className="mt-1 text-sm text-muted">{cfg.sousTitre(` ${prepo} ${e.nom}`)}</p>
+              <p className="mt-1 text-sm text-muted">{fmt(t.resaSousTitre, { n: e.nom })}</p>
 
               <div className="mt-4 space-y-3">
                 <Champ
                   Icon={CalendarDays}
-                  label={cfg.champTemps1}
-                  valeur={date ? dateLongue(date) : "Choisir une date"}
+                  label={e.secteur === "hotellerie" ? t.dateArrivee : t.dateLabel}
+                  valeur={date ? dateLongue(date, locale) : t.choisirDate}
                   vide={!date}
                   onClick={() => setPanneau("date")}
                 />
                 {e.secteur === "hotellerie" ? (
-                  <Champ Icon={CalendarDays} label={cfg.champTemps2!} valeur={depart ? dateLongue(depart) : "Choisir une date"} vide={!depart} onClick={() => setPanneau("depart")} />
+                  <Champ Icon={CalendarDays} label={t.dateDepart} valeur={depart ? dateLongue(depart, locale) : t.choisirDate} vide={!depart} onClick={() => setPanneau("depart")} />
                 ) : (
-                  <Champ Icon={Clock} label={cfg.champTemps2!} valeur={heure || "Choisir l'heure"} vide={!heure} onClick={() => (date ? setPanneau("heure") : setPanneau("date"))} />
+                  <Champ Icon={Clock} label={t.heureLabel} valeur={heure || t.choisirHeure} vide={!heure} onClick={() => (date ? setPanneau("heure") : setPanneau("date"))} />
                 )}
                 {e.secteur === "hotellerie" ? (
                   <Champ
                     Icon={BedDouble}
-                    label={cfg.champPersonnes}
-                    valeur={chambreChoisie ? `${chambreChoisie.nom} · ${voyageurs} voyageur${voyageurs > 1 ? "s" : ""}` : "Choisir une chambre"}
+                    label={t[PERS_SECTEUR[e.secteur]]}
+                    valeur={chambreChoisie ? `${chambreChoisie.nom} · ${tv(t.voyageursNb, voyageurs)}` : t.choisirChambre}
                     vide={!chambreId}
                     onClick={() => setPanneau("chambre")}
                   />
                 ) : e.secteur === "sante" ? (
                   <Champ
                     Icon={Stethoscope}
-                    label={cfg.champPersonnes}
-                    valeur={praticienChoisi ? `${praticienChoisi.specialite} — ${praticienChoisi.nom}` : "Choisir la spécialité"}
+                    label={t[PERS_SECTEUR[e.secteur]]}
+                    valeur={praticienChoisi ? `${praticienChoisi.specialite} — ${praticienChoisi.nom}` : t.choisirSpecialite}
                     vide={!praticienId}
                     onClick={() => setPanneau("specialite")}
                   />
                 ) : (
-                  <Champ Icon={Users} label={cfg.champPersonnes} valeur={personnesTexte} onClick={() => setPanneau("personnes")} />
+                  <Champ Icon={Users} label={t[PERS_SECTEUR[e.secteur]]} valeur={personnesTexte} onClick={() => setPanneau("personnes")} />
                 )}
               </div>
 
@@ -642,18 +681,18 @@ export function Reserver({ e }: { e: Etablissement }) {
               >
                 {envoi ? (
                   <>
-                    <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden /> Confirmation en cours…
+                    <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden /> {t.confirmationEnCours}
                   </>
                 ) : (
                   <>
-                    <CalendarDays className="size-5" aria-hidden /> {modification ? "Enregistrer les modifications" : "Confirmer la réservation"}
+                    <CalendarDays className="size-5" aria-hidden /> {modification ? t.enregistrerModifs : t.confirmerResa}
                   </>
                 )}
               </button>
 
               {modification && (
                 <button type="button" onClick={() => setPanneau("annuler")} className="mt-3 w-full text-center text-sm font-bold text-red-600">
-                  Annuler la réservation
+                  {t.annulerLaResa}
                 </button>
               )}
             </section>
@@ -668,25 +707,23 @@ export function Reserver({ e }: { e: Etablissement }) {
                 <ShieldCheck className="size-5.5" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold text-ink">Confirmation</span>
+                <span className="block text-sm font-bold text-ink">{t.confirmationBloc}</span>
                 <span className="block text-xs leading-snug text-ink/70">
-                  {config.autoConfirmation
-                    ? "Votre réservation sera confirmée immédiatement."
-                    : "Votre réservation sera confirmée sous 2 minutes."}{" "}
-                  Vous recevrez une confirmation dans l&apos;application et par SMS.{acompte > 0 ? " Paiement sécurisé." : ""}
+                  {config.autoConfirmation ? t.confImmediate : t.conf2min} {t.confSmsApp}
+                  {acompte > 0 ? ` ${t.paiementSecurise}` : ""}
                 </span>
               </span>
               <ChevronRight className="size-4.5 shrink-0 text-primary" aria-hidden />
             </button>
 
             {/* ---------- Recommandés près de vous ---------- */}
-            <Recommandes e={e} position={position} />
+            <Recommandes e={e} position={position} locale={locale} />
           </div>
         )}
       </div>
 
       {/* ---------- Panneaux ---------- */}
-      <Modal open={panneau === "date"} onClose={() => setPanneau(null)} title={e.secteur === "hotellerie" ? "Date d'arrivée" : "Date"}>
+      <Modal open={panneau === "date"} onClose={() => setPanneau(null)} title={e.secteur === "hotellerie" ? t.dateArrivee : t.dateLabel}>
         <Calendrier
           min={jour}
           max={ajouterJoursDate(jour, config.horizonJours)}
@@ -703,7 +740,7 @@ export function Reserver({ e }: { e: Etablissement }) {
         />
       </Modal>
 
-      <Modal open={panneau === "depart"} onClose={() => setPanneau(null)} title="Date de départ">
+      <Modal open={panneau === "depart"} onClose={() => setPanneau(null)} title={t.dateDepart}>
         <Calendrier
           min={date ? ajouterJoursDate(date, 1) : ajouterJoursDate(jour, 1)}
           max={ajouterJoursDate(jour, config.horizonJours)}
@@ -718,9 +755,9 @@ export function Reserver({ e }: { e: Etablissement }) {
         />
       </Modal>
 
-      <Modal open={panneau === "heure"} onClose={() => setPanneau(null)} title={date ? `Créneaux du ${dateLongue(date)}` : "Heure"}>
+      <Modal open={panneau === "heure"} onClose={() => setPanneau(null)} title={date ? fmt(t.creneauxDu, { n: dateLongue(date, locale) }) : t.heureLabel}>
         {creneauxJour.length === 0 ? (
-          <p className="rounded-2xl bg-surface p-4 pb-2 text-center text-sm text-muted">Aucun créneau disponible ce jour-là.</p>
+          <p className="rounded-2xl bg-surface p-4 pb-2 text-center text-sm text-muted">{t.aucunCreneau}</p>
         ) : (
           <div className="space-y-4 pb-2">
             {Object.entries(creneauxJour.reduce<Record<string, typeof creneauxJour>>((acc, c) => ((acc[c.service] ??= []).push(c), acc), {})).map(([service, liste]) => (
@@ -755,18 +792,18 @@ export function Reserver({ e }: { e: Etablissement }) {
         )}
       </Modal>
 
-      <Modal open={panneau === "personnes"} onClose={() => setPanneau(null)} title="Nombre de personnes">
+      <Modal open={panneau === "personnes"} onClose={() => setPanneau(null)} title={t.nbPersonnesTitre}>
         <div className="space-y-4 pb-2">
-          <Compteur label="Adultes" valeur={adultes} min={1} max={config.restaurant.maxCouverts} onChange={setAdultes} />
-          <Compteur label="Enfants" valeur={enfants} min={0} max={Math.max(0, config.restaurant.maxCouverts - adultes)} onChange={setEnfants} />
+          <Compteur label={t.adultes} valeur={adultes} min={1} max={config.restaurant.maxCouverts} onChange={setAdultes} />
+          <Compteur label={t.enfants} valeur={enfants} min={0} max={Math.max(0, config.restaurant.maxCouverts - adultes)} onChange={setEnfants} />
           <p className="rounded-xl bg-surface p-3 text-center text-sm font-semibold text-ink">{personnesTexte}</p>
           <button type="button" onClick={() => setPanneau(null)} className="btn btn-success w-full py-3">
-            Valider
+            {t.valider}
           </button>
         </div>
       </Modal>
 
-      <Modal open={panneau === "chambre"} onClose={() => setPanneau(null)} title="Chambre & voyageurs">
+      <Modal open={panneau === "chambre"} onClose={() => setPanneau(null)} title={t.chambreVoyageurs}>
         <div className="space-y-3 pb-2">
           {dispoHotel.map(({ chambre, restantes, totalParChambre, nuits: n }) => (
             <button
@@ -783,23 +820,23 @@ export function Reserver({ e }: { e: Etablissement }) {
               <span>
                 <span className="block text-sm font-bold text-ink">{chambre.nom}</span>
                 <span className="block text-xs text-muted">
-                  {chambre.capacite} pers. max · {formatFCFA(chambre.prix)} / nuit · {restantes ? (restantes <= 3 ? `plus que ${restantes}` : "disponible") : "complet"}
+                  {fmt(t.persMax, { n: chambre.capacite })} · {formatFCFA(chambre.prix)} {t.parNuit} · {restantes ? (restantes <= 3 ? fmt(t.plusQue, { n: restantes }) : t.disponible) : t.complet}
                 </span>
               </span>
               <span className="text-right text-sm font-bold text-ink">
                 {formatFCFA(totalParChambre)}
-                <span className="block text-[11px] font-normal text-muted">{n} nuit(s)</span>
+                <span className="block text-[11px] font-normal text-muted">{tv(t.nuites, n)}</span>
               </span>
             </button>
           ))}
-          <Compteur label="Voyageurs" valeur={voyageurs} min={1} max={6} onChange={setVoyageurs} />
+          <Compteur label={t.voyageurs} valeur={voyageurs} min={1} max={6} onChange={setVoyageurs} />
           <button type="button" onClick={() => setPanneau(null)} className="btn btn-success w-full py-3">
-            Valider
+            {t.valider}
           </button>
         </div>
       </Modal>
 
-      <Modal open={panneau === "specialite"} onClose={() => setPanneau(null)} title="Spécialité">
+      <Modal open={panneau === "specialite"} onClose={() => setPanneau(null)} title={t.specialiteTitre}>
         <div className="space-y-2 pb-2">
           {config.sante.praticiens.map((p) => (
             <button
@@ -822,30 +859,29 @@ export function Reserver({ e }: { e: Etablissement }) {
         </div>
       </Modal>
 
-      <Modal open={panneau === "confirmation"} onClose={() => setPanneau(null)} title="Confirmation de réservation">
+      <Modal open={panneau === "confirmation"} onClose={() => setPanneau(null)} title={t.confResaTitre}>
         <div className="space-y-3 pb-2 text-sm leading-relaxed text-ink/85">
           <p>
-            <strong className="text-ink">Délai :</strong> {config.autoConfirmation ? "la réservation est confirmée immédiatement." : "l'établissement confirme en général sous 2 minutes."} Vous recevrez
-            une notification dans l&apos;application et un SMS de confirmation.
+            <strong className="text-ink">{t.delaiLabel}</strong> {config.autoConfirmation ? t.confimmediatDetail : t.conf2minDetail} {t.notifSmsConfirm}
           </p>
           <p>
-            <strong className="text-ink">Annulation :</strong> gratuite jusqu&apos;à {config.delaiMinHeures} h avant l&apos;horaire réservé, depuis l&apos;onglet Réservations.
+            <strong className="text-ink">{t.annulationLabel}</strong> {fmt(t.annulationGratuite, { n: config.delaiMinHeures })}
           </p>
           <p>
-            <strong className="text-ink">Modification :</strong> retrouvez votre réservation dans « Mes réservations » puis touchez « Modifier ».
+            <strong className="text-ink">{t.modificationLabel}</strong> {t.modificationDetail}
           </p>
-          <p className="text-xs text-muted">Rappel automatique 2 h avant. {acompte > 0 ? "Un acompte peut être demandé par l'établissement." : "La réservation est gratuite, sans paiement."}</p>
+          <p className="text-xs text-muted">{t.rappel2h} {acompte > 0 ? t.acompteDemande : t.resaGratuite}</p>
         </div>
       </Modal>
 
-      <Modal open={panneau === "annuler"} onClose={() => setPanneau(null)} title="Annuler la réservation">
+      <Modal open={panneau === "annuler"} onClose={() => setPanneau(null)} title={t.annulerLaResa}>
         <div className="space-y-4 pb-2">
           <p className="text-sm text-ink/85">
-            Annuler la réservation <strong className="text-ink">{modification?.reference}</strong> ? L&apos;annulation est gratuite jusqu&apos;à {config.delaiMinHeures} h avant l&apos;horaire prévu.
+            {t.annulerLaResa} <strong className="text-ink">{modification?.reference}</strong> ? {fmt(t.annulerGratuite, { n: config.delaiMinHeures })}
           </p>
           <div className="flex gap-3">
             <button type="button" onClick={() => setPanneau(null)} className="btn btn-outline flex-1 py-3">
-              Garder
+              {t.garder}
             </button>
             <button
               type="button"
@@ -855,7 +891,7 @@ export function Reserver({ e }: { e: Etablissement }) {
               }}
               className="btn flex-1 bg-danger py-3 font-bold text-white"
             >
-              Confirmer l&apos;annulation
+              {t.confirmerAnnulation}
             </button>
           </div>
         </div>
@@ -885,17 +921,18 @@ function Champ({ Icon, label, valeur, vide, onClick }: { Icon: typeof CalendarDa
 
 /* ---------- Compteur +/- ---------- */
 function Compteur({ label, valeur, min, max, onChange }: { label: string; valeur: number; min: number; max: number; onChange: (n: number) => void }) {
+  const { t } = useLangue();
   return (
     <div className="flex items-center justify-between rounded-2xl border border-line px-4 py-2.5">
       <span className="text-sm font-bold text-ink">{label}</span>
       <span className="flex items-center gap-3">
-        <button type="button" aria-label={`${label} : moins`} disabled={valeur <= min} onClick={() => onChange(valeur - 1)} className="grid size-11 place-items-center rounded-full border border-line text-ink transition active:scale-90 disabled:opacity-30">
+        <button type="button" aria-label={fmt(t.diminuerQte, { n: label })} disabled={valeur <= min} onClick={() => onChange(valeur - 1)} className="grid size-11 place-items-center rounded-full border border-line text-ink transition active:scale-90 disabled:opacity-30">
           <Minus className="size-4.5" aria-hidden />
         </button>
         <span className="w-6 text-center font-display text-lg font-bold text-ink" aria-live="polite">
           {valeur}
         </span>
-        <button type="button" aria-label={`${label} : plus`} disabled={valeur >= max} onClick={() => onChange(valeur + 1)} className="grid size-11 place-items-center rounded-full bg-success text-white transition active:scale-90 disabled:opacity-30">
+        <button type="button" aria-label={fmt(t.augmenterQte, { n: label })} disabled={valeur >= max} onClick={() => onChange(valeur + 1)} className="grid size-11 place-items-center rounded-full bg-success text-white transition active:scale-90 disabled:opacity-30">
           <Plus className="size-4.5" aria-hidden />
         </button>
       </span>
@@ -905,9 +942,10 @@ function Compteur({ label, valeur, min, max, onChange }: { label: string; valeur
 
 /* ---------- Calendrier (mois courant + suivant) ---------- */
 function Calendrier({ min, max, indisponibles, valeur, mois, onMois, onChoix }: { min: string; max: string; indisponibles: Set<string>; valeur: string; mois: number; onMois: (n: number) => void; onChoix: (d: string) => void }) {
+  const { t, locale } = useLangue();
   const base = new Date(`${min}T00:00:00Z`);
   const moisCourant = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + mois, 1));
-  const nomMois = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" }).format(moisCourant).replace(/^./, (c) => c.toUpperCase());
+  const nomMois = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(moisCourant).replace(/^./, (c) => c.toUpperCase());
   const premierJour = moisCourant.getUTCDay();
   const nbJours = new Date(Date.UTC(moisCourant.getUTCFullYear(), moisCourant.getUTCMonth() + 1, 0)).getUTCDate();
   const decal = (premierJour + 6) % 7; // lundi en premier
@@ -915,7 +953,7 @@ function Calendrier({ min, max, indisponibles, valeur, mois, onMois, onChoix }: 
   return (
     <div className="pb-2">
       <div className="flex items-center justify-between px-1">
-        <button type="button" onClick={() => onMois(Math.max(0, mois - 1))} disabled={mois === 0} aria-label="Mois précédent" className="grid size-11 place-items-center rounded-full border border-line transition active:scale-90 disabled:opacity-30">
+        <button type="button" onClick={() => onMois(Math.max(0, mois - 1))} disabled={mois === 0} aria-label={t.moisPrecedent} className="grid size-11 place-items-center rounded-full border border-line transition active:scale-90 disabled:opacity-30">
           <ArrowLeft className="size-4" aria-hidden />
         </button>
         <p className="font-display font-bold text-ink" aria-live="polite">
@@ -925,14 +963,14 @@ function Calendrier({ min, max, indisponibles, valeur, mois, onMois, onChoix }: 
           type="button"
           onClick={() => onMois(mois + 1)}
           disabled={ajouterJoursDate(moisCourant.toISOString().slice(0, 10), 31) > max}
-          aria-label="Mois suivant"
+          aria-label={t.moisSuivant}
           className="grid size-11 place-items-center rounded-full border border-line transition active:scale-90 disabled:opacity-30"
         >
           <ArrowLeft className="size-4 rotate-180" aria-hidden />
         </button>
       </div>
       <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-muted">
-        {["L", "M", "M", "J", "V", "S", "D"].map((j, i) => (
+        {t.joursCourts.split(" ").map((j, i) => (
           <span key={i} className="py-1">
             {j}
           </span>
@@ -952,7 +990,7 @@ function Calendrier({ min, max, indisponibles, valeur, mois, onMois, onChoix }: 
               disabled={bloque}
               onClick={() => onChoix(d)}
               aria-pressed={valeur === d}
-              aria-label={dateLongue(d)}
+              aria-label={dateLongue(d, locale)}
               className={cn(
                 "grid aspect-square place-items-center rounded-xl text-sm font-semibold transition disabled:text-muted/40",
                 valeur === d ? "bg-success text-white shadow-card" : bloque ? "" : "text-ink active:bg-primary-soft",
@@ -969,6 +1007,7 @@ function Calendrier({ min, max, indisponibles, valeur, mois, onMois, onChoix }: 
 
 /* ---------- Onglet Offre (Menu / Chambres / Services) ---------- */
 function OngletOffre({ e, config }: { e: Etablissement; config: ReturnType<typeof useReservations>["config"] }) {
+  const { t } = useLangue();
   if (e.secteur === "hotellerie")
     return (
       <section className="mt-4 space-y-3">
@@ -976,9 +1015,9 @@ function OngletOffre({ e, config }: { e: Etablissement; config: ReturnType<typeo
           <div key={c.id} className="flex items-center justify-between gap-3 rounded-3xl border border-line bg-white p-4 shadow-card">
             <div>
               <p className="text-sm font-bold text-ink">{c.nom}</p>
-              <p className="text-xs text-muted">Jusqu&apos;à {c.capacite} personnes</p>
+              <p className="text-xs text-muted">{fmt(t.jusquaPersonnes, { n: c.capacite })}</p>
             </div>
-            <p className="text-sm font-bold text-primary">{formatFCFA(c.prix)} <span className="text-[11px] font-normal text-muted">/ nuit</span></p>
+            <p className="text-sm font-bold text-primary">{formatFCFA(c.prix)} <span className="text-[11px] font-normal text-muted">{t.parNuit}</span></p>
           </div>
         ))}
       </section>
@@ -1014,14 +1053,16 @@ function OngletOffre({ e, config }: { e: Etablissement; config: ReturnType<typeo
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted">Carte indicative communiquée par l&apos;établissement lors de l&apos;audit.</p>
+      <p className="text-xs text-muted">{t.carteIndicative}</p>
     </section>
   );
 }
 
 /* ---------- Recommandés près de vous ---------- */
-function Recommandes({ e, position }: { e: Etablissement; position: [number, number] | null }) {
-  const similaires = ETABLISSEMENTS.filter(
+function Recommandes({ e, position, locale }: { e: Etablissement; position: [number, number] | null; locale: string }) {
+  const { t } = useLangue();
+  const { etablissements } = useCatalogue();
+  const similaires = etablissements.filter(
     (x) => x.slug !== e.slug && x.secteur === e.secteur && x.pack === "premium",
   )
     .map((x) => ({ x, d: position ? distanceKm(position, x.coords) : Number.POSITIVE_INFINITY, n: noteMoyenne(x.avis) }))
@@ -1030,7 +1071,7 @@ function Recommandes({ e, position }: { e: Etablissement; position: [number, num
   if (!similaires.length) return null;
   return (
     <section>
-      <h3 className="mb-3 font-display text-base font-bold text-ink">Recommandés près de vous</h3>
+      <h3 className="mb-3 font-display text-base font-bold text-ink">{t.recommandes}</h3>
       <ul className="space-y-2.5">
         {similaires.map(({ x, d, n }) => (
           <li key={x.slug}>
@@ -1047,11 +1088,11 @@ function Recommandes({ e, position }: { e: Etablissement; position: [number, num
               <span className="flex shrink-0 items-center gap-2 text-xs font-bold text-muted">
                 {Number.isFinite(d) && (
                   <span className="flex items-center gap-1">
-                    <MapPin className="size-3" aria-hidden /> {d.toFixed(1).replace(".", ",")} km
+                    <MapPin className="size-3" aria-hidden /> {d.toLocaleString(locale, { maximumFractionDigits: 1 })} km
                   </span>
                 )}
                 <span className="flex items-center gap-1 text-ink">
-                  <Star className="size-3.5 fill-or text-or" aria-hidden /> {n.toFixed(1).replace(".", ",")}
+                  <Star className="size-3.5 fill-or text-or" aria-hidden /> {formatScore(n, locale)}
                 </span>
                 <ChevronRight className="size-4 text-primary" aria-hidden />
               </span>

@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { AlertTriangle, CalendarCheck, Gauge, ShieldCheck, Sparkles } from "lucide-react";
-import { CLES, type Dossier, ajouterJours } from "@/lib/espace";
+import { ajouterJours } from "@/lib/espace";
 import { CRITERES } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 import { SITE } from "@/lib/site";
-import { useStockage } from "@/lib/stockage";
 import { Chargement } from "@/components/espace/ui";
 import { EntetePro, EtatVidePro, ProgressBarPro, StatusPillPro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 export function ControlesPro() {
-  const [dossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier] = useDossierPro();
   if (dossier === undefined) return <Chargement />;
 
   if (!dossier?.audit)

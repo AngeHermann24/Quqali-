@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Award, CheckCircle2, GraduationCap, ListVideo, Lock, Play, ShieldCheck } from "lucide-react";
-import { CLES, type Dossier } from "@/lib/espace";
+import { CLES } from "@/lib/espace";
 import { CRITERES } from "@/lib/data";
 import { FORMATIONS, type Capsule, type Formation, capsuleLisible, dureeTotale, progressionFormation } from "@/lib/formations";
 import { MOYENS, type MoyenPaiement } from "@/lib/abonnement";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/site";
 import { useStockage } from "@/lib/stockage";
 import { Chargement } from "@/components/espace/ui";
 import { EntetePro, PanneauBas, ProgressBarPro, ToastPro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 interface EtatFormations {
   achetees: string[];
@@ -21,7 +22,7 @@ const ICONE_THEME: Record<string, typeof GraduationCap> = { hygiene: ShieldCheck
 const themeLabel = (f: Formation) => (f.theme === "audit" ? "Audit" : CRITERES.find((c) => c.key === f.theme)?.label ?? f.theme);
 
 export function FormationsPro() {
-  const [dossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier] = useDossierPro();
   const [etats, setEtats] = useStockage<Record<string, EtatFormations>>(CLES.formationsPro);
   const [choix, setChoix] = useState<Formation | null>(null);
   const [paiement, setPaiement] = useState<Formation | null>(null);

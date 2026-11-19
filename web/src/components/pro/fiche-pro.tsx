@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Camera, Eye, History, ImageIcon, Info, Lock, MapPin, Phone, Plus, Save, Star } from "lucide-react";
-import { CLES, type Dossier, avisDemo, maintenant } from "@/lib/espace";
+import { CLES, avisDemo, maintenant } from "@/lib/espace";
 import { SECTEURS, type Secteur } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/site";
@@ -10,6 +10,7 @@ import { useStockage } from "@/lib/stockage";
 import type { AvisClient } from "@/lib/avis";
 import { Chargement } from "@/components/espace/ui";
 import { BadgeCertifiePro, ChipPro, EtatVidePro, PanneauBas, TabsPro, ToastPro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 type Onglet = "infos" | "services" | "photos" | "horaires";
 
@@ -24,7 +25,7 @@ const SERVICES_PAR_SECTEUR: Record<Secteur, string[]> = {
 };
 
 export function FichePro() {
-  const [dossier, setDossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier, setDossier] = useDossierPro();
   const [avisTous] = useStockage<Record<string, AvisClient[]>>(CLES.avis);
   const [onglet, setOnglet] = useState<Onglet>("infos");
   const [apercu, setApercu] = useState(false);

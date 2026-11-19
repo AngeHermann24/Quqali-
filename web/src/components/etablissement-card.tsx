@@ -1,7 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { type Etablissement, noteMoyenne, scoreGlobal } from "@/lib/data";
+import { niveauEffectif } from "@/lib/admin";
 import { formatScore } from "@/lib/format";
+import { tv } from "@/lib/langue";
+import { useCatalogue } from "@/components/catalogue";
+import { useLangue } from "@/components/langue";
 import { cn } from "@/lib/site";
 import { CertifiedBadge, PhotoPlaceholder, PremiumTag, ScorePill, Stars } from "@/components/ui";
 import { BoutonFavori } from "@/components/app/favoris";
@@ -17,8 +23,12 @@ export function EtablissementCard({
   active?: boolean;
   badgeRetire?: boolean;
 }) {
+  const { t, locale } = useLangue();
+  const { gestion } = useCatalogue();
   const horizontal = layout === "horizontal";
   const moyenne = noteMoyenne(e.avis);
+  const score = scoreGlobal(e.scores);
+  const niveau = niveauEffectif(score, gestion?.[e.slug]);
 
   return (
     <Link
@@ -33,7 +43,7 @@ export function EtablissementCard({
         <PhotoPlaceholder secteur={e.secteur} className="absolute inset-0" />
         {!badgeRetire && (
           <span className={cn("absolute top-3 left-3", horizontal && "hidden sm:block")}>
-            <CertifiedBadge />
+            <CertifiedBadge niveau={niveau} />
           </span>
         )}
         {e.pack === "premium" && <PremiumTag className={cn("absolute", horizontal ? "bottom-2 left-2" : "bottom-2.5 left-2.5")} />}
@@ -46,7 +56,7 @@ export function EtablissementCard({
             <h3 className="truncate font-display font-semibold text-ink group-hover:text-primary">{e.nom}</h3>
             <p className="truncate text-sm text-muted">{e.sousType}</p>
           </div>
-          <ScorePill value={scoreGlobal(e.scores)} />
+          <ScorePill value={score} niveau={niveau} />
         </div>
         <p className="mt-2 flex items-center gap-1 truncate text-sm text-muted">
           <MapPin className="size-3.5 shrink-0 text-primary" aria-hidden />
@@ -56,7 +66,7 @@ export function EtablissementCard({
           {moyenne > 0 && (
             <span className="flex items-center gap-1">
               <Stars value={moyenne} />
-              <span className="font-medium text-ink">{formatScore(moyenne)}</span>({e.avis.length} avis)
+              <span className="font-medium text-ink">{formatScore(moyenne, locale)}</span>({tv(t.avisNb, e.avis.length)})
             </span>
           )}
           <span className="truncate">{e.prix}</span>

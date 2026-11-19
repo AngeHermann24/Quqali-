@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { ETABLISSEMENTS } from "@/lib/data";
+import { cataloguePublic } from "@/lib/db/catalogue";
 import { SITE } from "@/lib/site";
 import { Explorer } from "@/components/app/explorer";
 
@@ -9,10 +9,11 @@ export const metadata: Metadata = {
   description: `Trouvez sur la carte d'Abidjan les établissements audités sur place, avec une note de gouvernance d'au moins ${SITE.seuil} %.`,
 };
 
-export default function EtablissementsPage() {
+export default async function EtablissementsPage() {
+  const etablissements = await cataloguePublic();
   return (
     <Suspense fallback={<SqueletteExplorer />}>
-      <Explorer etablissements={ETABLISSEMENTS} />
+      <Explorer etablissements={etablissements} />
     </Suspense>
   );
 }

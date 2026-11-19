@@ -20,6 +20,7 @@ import { useStockage } from "@/lib/stockage";
 import { useHorloge } from "@/lib/use-config";
 import { Chargement } from "@/components/espace/ui";
 import { CalendrierPro, EntetePro, EtatVidePro, LockedFeature, PanneauBas, StatusPillPro, TabsPro, ToastPro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 type Onglet = "calendrier" | "liste";
 const TON: Record<StatutReservation, { statut: "confirmee" | "a_confirmer" | "en_attente" | "refusee" | "annulee"; label: string }> = {
@@ -65,7 +66,7 @@ function graines(dossier: Dossier, config: ConfigReservation, ref: string): Rese
 
 export function ReservationsPro() {
   const router = useRouter();
-  const [dossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier] = useDossierPro();
   const [toutes, setToutes] = useStockage<Record<string, Reservation[]>>(CLES.reservations);
   const [configs, setConfigs] = useStockage<Record<string, ConfigReservation>>(CLES.configReservation);
   const { aujourdhui } = useHorloge();

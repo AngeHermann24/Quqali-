@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MessageSquareText, Send, TrendingUp } from "lucide-react";
-import { CLES, type Dossier, avisDemo } from "@/lib/espace";
+import { CLES, avisDemo } from "@/lib/espace";
 import { type AvisClient, type StatutAvis } from "@/lib/avis";
 import { CRITERES } from "@/lib/data";
 import { aAcces } from "@/lib/pro-service";
@@ -10,6 +10,7 @@ import { useStockage } from "@/lib/stockage";
 import { useHorloge } from "@/lib/use-config";
 import { Chargement } from "@/components/espace/ui";
 import { ChipPro, EntetePro, EtatVidePro, LockedFeature, PanneauBas, ProgressBarPro, ReviewCardPro, TabsPro, ToastPro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 type AvisAff = { id: string; auteur: string; date: string; note: number; commentaire: string; statut: StatutAvis; criteres?: Record<string, number> };
 type Onglet = "tous" | "positifs" | "neutres" | "negatifs";
@@ -21,7 +22,7 @@ const ilYA = (iso: string, ref: string) => {
 };
 
 export function AvisPro() {
-  const [dossier, setDossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier, setDossier] = useDossierPro();
   const [avisTous, setAvisTous] = useStockage<Record<string, AvisClient[]>>(CLES.avis);
   const { aujourdhui } = useHorloge();
   const [onglet, setOnglet] = useState<Onglet>("tous");

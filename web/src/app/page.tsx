@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { AWARDS, ETABLISSEMENTS, getEtablissement } from "@/lib/data";
+import { AWARDS } from "@/lib/data";
+import { cataloguePublic } from "@/lib/db/catalogue";
 import { SITE } from "@/lib/site";
 import { AccueilApp } from "@/components/app/accueil-app";
 
@@ -8,10 +9,11 @@ export const metadata: Metadata = {
   description: SITE.description,
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const etablissements = await cataloguePublic();
   const laureats = AWARDS.laureats
-    .map(({ categorie, slug }) => ({ categorie, nom: getEtablissement(slug)?.nom ?? "", slug }))
+    .map(({ categorie, slug }) => ({ categorie, nom: etablissements.find((e) => e.slug === slug)?.nom ?? "", slug }))
     .filter((l) => l.nom);
 
-  return <AccueilApp etablissements={ETABLISSEMENTS} laureats={laureats} annee={AWARDS.annee} />;
+  return <AccueilApp etablissements={etablissements} laureats={laureats} annee={AWARDS.annee} />;
 }

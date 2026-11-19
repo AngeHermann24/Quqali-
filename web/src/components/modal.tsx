@@ -2,8 +2,10 @@
 
 import { type ReactNode, useEffect } from "react";
 import { X } from "lucide-react";
+import { useLangue } from "@/components/langue";
 
 export function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  const { t } = useLangue();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -32,7 +34,7 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <h2 className="font-display text-lg font-semibold text-primary">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Fermer" className="grid size-9 shrink-0 place-items-center rounded-full hover:bg-surface">
+          <button type="button" onClick={onClose} aria-label={t.fermer} className="grid size-9 shrink-0 place-items-center rounded-full hover:bg-surface">
             <X className="size-5" />
           </button>
         </div>

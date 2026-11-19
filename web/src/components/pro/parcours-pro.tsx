@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { CalendarClock, ChevronRight, FilePlus2, FileSearch, Footprints, Handshake, PartyPopper, ClipboardCheck, CreditCard } from "lucide-react";
-import { CLES, type Dossier, ajouterJours, auditSimule, maintenant, nomIntervenant } from "@/lib/espace";
+import { type Dossier, ajouterJours, auditSimule, maintenant, nomIntervenant } from "@/lib/espace";
 import { INTERVENANTS } from "@/lib/espace";
 import { assignerAgent } from "@/lib/regles";
 import { etatAbonnement } from "@/lib/abonnement";
 import { formatDate, formatScore } from "@/lib/format";
 import { SITE } from "@/lib/site";
-import { useStockage } from "@/lib/stockage";
 import { useConfigTarifs, useHorloge } from "@/lib/use-config";
 import { Chargement, PanneauDemo } from "@/components/espace/ui";
 import { EntetePro, ProgressBarPro, StepperPro, type EtapeStepper } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 /** Trois créneaux proposés, calculés à partir d'aujourd'hui (J+3, J+4, J+7). */
 const creneaux = (aujourdhui: string) => [
@@ -23,7 +23,7 @@ const NOMS_ETAPES = ["Dossier", "Validé", "Audit", "Résultat", "Paiement", "Pu
 
 /** Écran 2 — Mon parcours : stepper 6 étapes, étape actuelle, prochaines étapes. */
 export function ParcoursPro() {
-  const [dossier, setDossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier, setDossier] = useDossierPro();
   const { aujourdhui } = useHorloge();
   const { config } = useConfigTarifs();
 

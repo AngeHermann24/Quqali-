@@ -12,26 +12,28 @@ import { useStockage } from "@/lib/stockage";
 import { cn } from "@/lib/site";
 import { useHorloge } from "@/lib/use-config";
 import {
-  CRITERES_AVIS,
+  CRITERES_AVIS_I18N,
   type CritereAvisId,
   DELAI_AVIS_JOURS,
   DELAI_MODIFICATION_JOURS,
-  ETIQUETTES_NOTE,
+  ETIQUETTES_NOTE_I18N,
   LARGEUR_PHOTO,
   MAX_PHOTOS,
   MAX_TAILLE_PHOTO,
-  PUCES_PLAINTES,
-  SUGGESTIONS_COMMENTAIRE,
-  TEXTES_AVIS,
+  PUCES_PLAINTES_I18N,
+  SUGGESTIONS_I18N,
+  TEXTES_AVIS_I18N,
 } from "@/lib/textes-avis";
 import type { AvisClient } from "@/lib/avis";
+import { fmt, tv } from "@/lib/langue";
+import { formatScore } from "@/lib/format";
+import { useLangue } from "@/components/langue";
 import { Modal } from "@/components/modal";
 import { PhotoPlaceholder } from "@/components/ui";
 import { useAvis, useCompteClient } from "@/components/avis/use-avis";
 
-const T = TEXTES_AVIS;
-const dateLongue = (iso: string) =>
-  new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })
+const dateLongue = (iso: string, locale = "fr-FR") =>
+  new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })
     .format(new Date(`${iso}T00:00:00Z`))
     .replace(/^./, (c) => c.toUpperCase());
 const ajouterJours = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
@@ -41,6 +43,12 @@ type Etape = "form" | "succes" | "refus" | "deja-note" | "delai" | "pas-de-visit
 export function DonnerAvis({ e }: { e: Etablissement }) {
   const router = useRouter();
   const params = useSearchParams();
+  const { langue, t, locale } = useLangue();
+  const T = TEXTES_AVIS_I18N[langue];
+  const criteres = CRITERES_AVIS_I18N[langue];
+  const etiquettes = ETIQUETTES_NOTE_I18N[langue];
+  const puces = PUCES_PLAINTES_I18N[langue];
+  const suggestions = SUGGESTIONS_I18N[langue];
   const { aujourdhui } = useHorloge();
   const { compte, charge: compteCharge } = useCompteClient();
   const { avis, soumettre, charge } = useAvis(e.slug);
@@ -141,7 +149,7 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
   const sale = Object.values(notes).some((n) => n !== null) || commentaire.trim() || photos.length;
   const toutesNotes = Object.values(notes).every((n) => n !== null);
   const noteMoy = toutesNotes ? Math.round((Object.values(notes) as number[]).reduce((s, n) => s + n, 0) / 3) : 0;
-  const faibles = CRITERES_AVIS.filter((c) => (notes[c.id] ?? 0) <= 2 && notes[c.id] !== null);
+  const faibles = criteres.filter((c) => (notes[c.id] ?? 0) <= 2 && notes[c.id] !== null);
   const bonnes = Object.values(notes).filter((n) => n !== null && n >= 4).length >= 2;
 
   /* ---------- Photos : compression + métadonnées retirées par réencodage canvas ---------- */
@@ -174,7 +182,7 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
 
   const publier = () => {
     if (!toutesNotes) {
-      const manquant = CRITERES_AVIS.find((c) => !notes[c.id]);
+      const manquant = criteres.find((c) => !notes[c.id]);
       if (manquant) {
         refNotes.current?.scrollIntoView({ behavior: "smooth", block: "center" });
         setSecoue(manquant.id);
@@ -219,16 +227,17 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
           ? { type: "reservation" as const, ref: reservation.id }
           : { type: "code" as const, code: codeSaisi.trim().toUpperCase() || codeVisiteDemo(e.slug) }),
       };
-      const nouveau = soumettre(compte, saisie);
-      sessionStorage.removeItem(cleDraft);
-      setEnvoi(false);
-      if (nouveau.statut === "rejete") {
-        setMotifRefus(nouveau.motifRejet ?? "Motif non précisé.");
-        setTentative((t) => t + 1);
-        setEtape("refus");
-      } else {
-        setEtape("succes");
-      }
+      void soumettre(compte, saisie).then((nouveau) => {
+        sessionStorage.removeItem(cleDraft);
+        setEnvoi(false);
+        if (nouveau?.statut === "rejete") {
+          setMotifRefus(nouveau.motifRejet ?? "Motif non précisé.");
+          setTentative((t) => t + 1);
+          setEtape("refus");
+        } else {
+          setEtape("succes");
+        }
+      });
     }, 1000);
   };
 
@@ -268,7 +277,7 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
 
   if (etapeActuelle === "refus")
     return (
-      <BlocEtat titre={T.refusTitre} texte={`Motif : ${motifRefus}`}>
+      <BlocEtat titre={T.refusTitre} texte={fmt(t.motifLabel, { n: motifRefus })}>
         {tentative < 2 ? (
           <button type="button" onClick={() => setEtape("form")} className="btn btn-success w-full rounded-2xl py-3.5 font-bold">
             {T.refusAction}
@@ -283,7 +292,7 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
 
   if (etapeActuelle === "deja-note")
     return (
-      <BlocEtat titre={T.dejaNoteTitre} texte="Votre avis est déjà enregistré pour cette visite.">
+      <BlocEtat titre={T.dejaNoteTitre} texte={t.avisDejaEnregistre}>
         <Link href={`/etablissements/${e.slug}#avis`} className="btn btn-success w-full rounded-2xl py-3.5 font-bold">
           {T.dejaNoteAction}
         </Link>
@@ -323,7 +332,7 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
               disabled={!codeSaisi.trim()}
               className="btn btn-success px-5 py-2.5 font-bold disabled:opacity-40"
             >
-              Valider
+              {t.valider}
             </button>
           </div>
         </div>
@@ -337,10 +346,10 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
   return (
     <div className="pb-28">
       <header className="flex items-center justify-between px-5 pt-4">
-        <button type="button" onClick={retour} aria-label="Retour" className="grid size-10 place-items-center rounded-full text-ink transition active:scale-95">
+        <button type="button" onClick={retour} aria-label={t.retour} className="grid size-10 place-items-center rounded-full text-ink transition active:scale-95">
           <ArrowLeft className="size-5" aria-hidden />
         </button>
-        <h1 className="font-display text-lg font-extrabold text-primary">{avisModifie ? "Modifier mon avis" : T.titre}</h1>
+        <h1 className="font-display text-lg font-extrabold text-primary">{avisModifie ? t.modifierMonAvis : T.titre}</h1>
         <span className="size-10" aria-hidden />
       </header>
 
@@ -356,26 +365,26 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
           </p>
           <p className="mt-0.5 flex items-center gap-1 text-xs">
             <Star className="size-3.5 fill-or text-or" aria-hidden />
-            <span className="font-bold text-ink">{moyenne > 0 ? moyenne.toFixed(1).replace(".", ",") : "—"}</span>
-            <span className="text-muted">({e.avis.length} avis)</span>
+            <span className="font-bold text-ink">{moyenne > 0 ? formatScore(moyenne, locale) : "—"}</span>
+            <span className="text-muted">({tv(t.avisNb, e.avis.length)})</span>
           </p>
         </div>
       </div>
-      {visite && <p className="mt-2.5 px-6 text-xs font-medium text-muted">{T.visite(dateLongue(visite))}</p>}
+      {visite && <p className="mt-2.5 px-6 text-xs font-medium text-muted">{T.visite(dateLongue(visite, locale))}</p>}
 
       {/* ---------- Étape 1 : notes ---------- */}
       <div ref={refNotes} className="mx-5 mt-4">
         <h2 className="font-display text-base font-bold text-ink">{T.etapeNotes}</h2>
         <div className={cn("mt-2.5 rounded-3xl border border-line bg-white shadow-card", secoue && "secoue")}>
-          {CRITERES_AVIS.map((c, i) => (
+          {criteres.map((c, i) => (
             <div key={c.id} className={cn("flex items-center justify-between gap-3 px-4 py-3", i > 0 && "border-t border-line")}>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-ink">{c.label}</p>
                 <p className="mt-0.5 h-4 text-xs font-semibold text-or" aria-live="polite">
-                  {notes[c.id] ? ETIQUETTES_NOTE[notes[c.id]! - 1] : ""}
+                  {notes[c.id] ? etiquettes[notes[c.id]! - 1] : ""}
                 </p>
               </div>
-              <LigneEtoiles valeur={notes[c.id]} onChange={(v) => setNotes((n) => ({ ...n, [c.id]: v }))} aria-label={`${c.label}, ${notes[c.id] ?? 0} étoiles sur 5`} />
+              <LigneEtoiles valeur={notes[c.id]} onChange={(v) => setNotes((n) => ({ ...n, [c.id]: v }))} aria-label={`${c.label}, ${fmt(t.etoilesSur5, { n: notes[c.id] ?? 0 })}`} />
             </div>
           ))}
         </div>
@@ -383,7 +392,7 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
           <div className="mt-3 rounded-2xl border border-line bg-white p-4">
             <p className="text-sm font-semibold text-ink">{T.questionPlaint}</p>
             <div className="mt-2.5 flex flex-wrap gap-2">
-              {PUCES_PLAINTES.map((p) => (
+              {puces.map((p) => (
                 <button
                   key={p}
                   type="button"
@@ -417,7 +426,7 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
           <div className="mt-1 flex items-center justify-between gap-3">
             <div className="flex flex-wrap gap-1.5">
               {bonnes &&
-                SUGGESTIONS_COMMENTAIRE.map((s) => (
+                suggestions.map((s) => (
                   <button
                     key={s}
                     type="button"
@@ -455,11 +464,11 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
             {photos.map((p, i) => (
               <li key={i} className="relative size-20 shrink-0 overflow-hidden rounded-2xl">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p} alt={`Photo ${i + 1}`} className="size-full object-cover" />
+                <img src={p} alt={`${t.photoMot} ${i + 1}`} className="size-full object-cover" />
                 <button
                   type="button"
                   onClick={() => setPhotos((l) => l.filter((_, j) => j !== i))}
-                  aria-label={`Retirer la photo ${i + 1}`}
+                  aria-label={fmt(t.retirerPhoto, { n: i + 1 })}
                   className="absolute top-1 right-1 grid size-6 place-items-center rounded-full bg-ink/60 text-white"
                 >
                   <X className="size-3.5" aria-hidden />
@@ -522,6 +531,8 @@ export function DonnerAvis({ e }: { e: Etablissement }) {
 
 /* ---------- 5 étoiles : touch, glisser, clavier ---------- */
 function LigneEtoiles({ valeur, onChange, "aria-label": ariaLabel }: { valeur: number | null; onChange: (v: number) => void; "aria-label": string }) {
+  const { t } = useLangue();
+  const tEtoiles = t.etoilesAria;
   const ref = useRef<HTMLDivElement>(null);
   const noteDepuisX = (x: number) => {
     const r = ref.current!.getBoundingClientRect();
@@ -550,7 +561,7 @@ function LigneEtoiles({ valeur, onChange, "aria-label": ariaLabel }: { valeur: n
           type="button"
           role="radio"
           aria-checked={valeur === i}
-          aria-label={`${i} étoile${i > 1 ? "s" : ""}`}
+          aria-label={tv(tEtoiles, i)}
           tabIndex={i === 1 || valeur === i ? 0 : -1}
           onClick={() => onChange(i)}
           onKeyDown={(ev) => {
@@ -572,13 +583,14 @@ function LigneEtoiles({ valeur, onChange, "aria-label": ariaLabel }: { valeur: n
 /* ---------- Écrans d'état ---------- */
 function BlocEtat({ titre, texte, children }: { titre: string; texte: string; children: React.ReactNode }) {
   const router = useRouter();
+  const { langue, t } = useLangue();
   return (
     <div className="pb-28">
       <header className="flex items-center px-5 pt-4">
-        <button type="button" onClick={() => router.back()} aria-label="Retour" className="grid size-10 place-items-center rounded-full text-ink transition active:scale-95">
+        <button type="button" onClick={() => router.back()} aria-label={t.retour} className="grid size-10 place-items-center rounded-full text-ink transition active:scale-95">
           <ArrowLeft className="size-5" aria-hidden />
         </button>
-        <h1 className="flex-1 text-center font-display text-lg font-extrabold text-primary">{T.titre}</h1>
+        <h1 className="flex-1 text-center font-display text-lg font-extrabold text-primary">{TEXTES_AVIS_I18N[langue].titre}</h1>
         <span className="size-10" aria-hidden />
       </header>
       <div className="mx-5 mt-14 flex flex-col items-center gap-4 text-center">

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ETABLISSEMENTS, getEtablissement, scoreGlobal } from "@/lib/data";
+import { ETABLISSEMENTS, scoreGlobal } from "@/lib/data";
+import { cataloguePublic, fichePublique } from "@/lib/db/catalogue";
 import { formatDate, formatScore } from "@/lib/format";
 import { FicheEtablissement } from "@/components/app/fiche-etablissement";
 
@@ -10,7 +11,7 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata(props: PageProps<"/etablissements/[slug]">): Promise<Metadata> {
-  const e = getEtablissement((await props.params).slug);
+  const e = await fichePublique((await props.params).slug);
   if (!e) return {};
   return {
     title: `${e.nom} — ${e.commune}`,
@@ -27,9 +28,10 @@ export default function FichePage(props: PageProps<"/etablissements/[slug]">) {
 }
 
 async function Fiche({ params }: { params: PageProps<"/etablissements/[slug]">["params"] }) {
-  const e = getEtablissement((await params).slug);
+  const slug = (await params).slug;
+  const [e, tous] = await Promise.all([fichePublique(slug), cataloguePublic()]);
   if (!e) notFound();
-  const similaires = ETABLISSEMENTS.filter((x) => x.secteur === e.secteur && x.slug !== e.slug).slice(0, 3);
+  const similaires = tous.filter((x) => x.secteur === e.secteur && x.slug !== e.slug).slice(0, 3);
   return <FicheEtablissement e={e} similaires={similaires} />;
 }
 

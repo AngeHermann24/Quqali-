@@ -5,15 +5,15 @@ import Link from "next/link";
 import { useState } from "react";
 import { Bell, CalendarClock, Check, ClipboardList, FileCheck2, Info, Users } from "lucide-react";
 import { CRITERES } from "@/lib/data";
-import { CLES, type Dossier, ajouterJours, nomIntervenant } from "@/lib/espace";
+import { ajouterJours, nomIntervenant } from "@/lib/espace";
 import { formatDate } from "@/lib/format";
 import { SITE } from "@/lib/site";
-import { useStockage } from "@/lib/stockage";
 import { useHorloge } from "@/lib/use-config";
 import { CRITERE_ICONS } from "@/components/ui";
 import { Chargement } from "@/components/espace/ui";
 import { EntetePro, PanneauBas, ToastPro } from "@/components/pro/ui";
 import { cn } from "@/lib/site";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 const PREPARATION = [
   { cle: "documents", label: "Documents prêts", detail: "Registre, autorisation, attestations à portée de main." },
@@ -30,7 +30,7 @@ const creneaux = (aujourdhui: string) => [
 /** Écran 4 — Audit sur place : rendez-vous, critères (sans notes), préparation. */
 export function AuditPro() {
   const router = useRouter();
-  const [dossier, setDossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier, setDossier] = useDossierPro();
   const { aujourdhui } = useHorloge();
   const [choisir, setChoisir] = useState(false);
   const [grille, setGrille] = useState(false);

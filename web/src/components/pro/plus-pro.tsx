@@ -19,13 +19,14 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { CLES, type Dossier } from "@/lib/espace";
+import { CLES } from "@/lib/espace";
 import { packActif } from "@/lib/pro-service";
 import { cn } from "@/lib/site";
 import { useStockage } from "@/lib/stockage";
 import type { ComptePro } from "@/lib/pro-demo";
 import { Chargement } from "@/components/espace/ui";
 import { EntetePro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 const GROUPES: { titre: string; items: { href: string; label: string; desc: string; Icon: typeof Bell; premium?: true }[] }[] = [
   {
@@ -58,7 +59,7 @@ const GROUPES: { titre: string; items: { href: string; label: string; desc: stri
 
 export function PlusPro() {
   const router = useRouter();
-  const [dossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier] = useDossierPro();
   const [, setCompte] = useStockage<ComptePro | null>(CLES.comptePro);
   if (dossier === undefined) return <Chargement />;
   const premium = packActif(dossier) === "premium";

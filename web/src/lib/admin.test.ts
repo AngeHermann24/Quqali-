@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { CONFIG_DEFAUT } from "./abonnement.ts";
 import {
   CANDIDATURES_PARTENAIRES_DEMO,
+  forcerNiveau,
   DOSSIERS_CANDIDATURES_DEMO,
   TRANSACTIONS_DEMO,
   VENTES_FORMATIONS_DEMO,
@@ -11,6 +12,7 @@ import {
   enregistrerResultatAudit,
   etatPublic,
   liensDuDossier,
+  niveauEffectif,
   peutDemarrerAudit,
   refuserDossier,
   remettreBadge,
@@ -139,4 +141,25 @@ test("statistiques formations : ventes, revenus au prix catalogue, classement", 
   assert.strictEqual(s.revenus, 7900 * 3 + 5900 * 2 + 6900 + 9900 + 4900);
   assert.strictEqual(s.parFormation.get("hygiene-irreprochable"), 3);
   assert.strictEqual(statistiquesFormations([]).revenus, 0);
+});
+
+test("niveau de badge : forçage admin et niveau effectif", () => {
+  let g: Gestion = {};
+  // Sans forçage : le niveau suit le score d'audit
+  assert.strictEqual(niveauEffectif(92, g["e1"]), "excellent");
+  assert.strictEqual(niveauEffectif(85, g["e1"]), "bon");
+  assert.strictEqual(niveauEffectif(70, g["e1"]), "ameliorer");
+  // Forçage : le niveau affiché ignore le score
+  g = forcerNiveau(g, "e1", "excellent");
+  assert.strictEqual(niveauEffectif(82, g["e1"]), "excellent");
+  g = forcerNiveau(g, "e1", "ameliorer");
+  assert.strictEqual(niveauEffectif(95, g["e1"]), "ameliorer");
+  // Retour à « auto » : le forçage est supprimé
+  g = forcerNiveau(g, "e1", null);
+  assert.strictEqual(g["e1"].niveau, undefined);
+  assert.strictEqual(niveauEffectif(82, g["e1"]), "bon");
+  // Le forçage coexiste avec suspension/retrait
+  g = suspendre(forcerNiveau({}, "e2", "bon"), "e2", "2026-11-05");
+  assert.strictEqual(etatPublic(g["e2"]), "suspendu");
+  assert.strictEqual(niveauEffectif(91, g["e2"]), "bon");
 });

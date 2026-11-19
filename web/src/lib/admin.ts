@@ -1,6 +1,7 @@
 import type { Secteur } from "./data";
 import { scoreGlobal } from "./scores.ts";
-import type { Scores } from "./scores";
+import type { NiveauQualite, Scores } from "./scores";
+import { niveauScore } from "./scores.ts";
 import type { ConfigTarifs, MoyenPaiement, Transaction } from "./abonnement";
 import { etatAbonnement } from "./abonnement.ts";
 import type { AvisClient } from "./avis";
@@ -16,11 +17,24 @@ export interface GestionEtablissement {
   suspendu?: string;
   /** Date ISO du retrait du badge « Qualité certifiée ». */
   badgeRetire?: string;
+  /** Niveau de badge forcé par l'admin ; absent = niveau calculé depuis le score d'audit. */
+  niveau?: NiveauQualite;
 }
 export type Gestion = Record<string, GestionEtablissement>;
 
 export type EtatPublic = "actif" | "badge_retire" | "suspendu";
 export const etatPublic = (g?: GestionEtablissement): EtatPublic => (g?.suspendu ? "suspendu" : g?.badgeRetire ? "badge_retire" : "actif");
+
+/** Force (ou lève avec null) le niveau de badge d'un établissement. */
+export const forcerNiveau = (g: Gestion, id: string, niveau: NiveauQualite | null): Gestion => {
+  const copie = { ...g[id] };
+  if (niveau === null) delete copie.niveau;
+  else copie.niveau = niveau;
+  return { ...g, [id]: copie };
+};
+
+/** Niveau affiché au public : forçage admin s'il existe, sinon calcul depuis le score. */
+export const niveauEffectif = (score: number, g?: GestionEtablissement): NiveauQualite => g?.niveau ?? niveauScore(score);
 
 export const suspendre = (g: Gestion, id: string, date: string): Gestion => ({ ...g, [id]: { ...g[id], suspendu: date } });
 export const retablir = (g: Gestion, id: string): Gestion => {

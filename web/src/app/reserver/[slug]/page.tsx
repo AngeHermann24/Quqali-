@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ETABLISSEMENTS, getEtablissement } from "@/lib/data";
+import { ETABLISSEMENTS } from "@/lib/data";
+import { fichePublique } from "@/lib/db/catalogue";
 import { Reserver } from "@/components/app/reserver";
 
 export function generateStaticParams() {
@@ -9,7 +10,7 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata(props: PageProps<"/reserver/[slug]">): Promise<Metadata> {
-  const e = getEtablissement((await props.params).slug);
+  const e = await fichePublique((await props.params).slug);
   if (!e) return {};
   return { title: `Réserver — ${e.nom}`, description: `Réservez en ligne chez ${e.nom} (${e.sousType} certifié, ${e.commune}).` };
 }
@@ -23,7 +24,7 @@ export default function ReserverPage(props: PageProps<"/reserver/[slug]">) {
 }
 
 async function Contenu({ params }: { params: PageProps<"/reserver/[slug]">["params"] }) {
-  const e = getEtablissement((await params).slug);
+  const e = await fichePublique((await params).slug);
   if (!e) notFound();
   return <Reserver e={e} />;
 }

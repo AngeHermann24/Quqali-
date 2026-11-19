@@ -8,10 +8,11 @@ import { CLES } from "@/lib/espace";
 import { cn } from "@/lib/site";
 import { useStockage } from "@/lib/stockage";
 import type { ComptePro } from "@/lib/pro-demo";
-import type { Dossier } from "@/lib/espace";
+import type {} from "@/lib/espace";
 import { estPublie } from "@/lib/pro-service";
 import { Chargement } from "@/components/espace/ui";
 import { LogoPro } from "@/components/pro/ui";
+import { useDossierPro } from "@/components/pro/use-dossier";
 
 /** Pages accessibles sans compte établissement. */
 const PUBLIQUES = ["/pro/connexion", "/pro/onboarding"];
@@ -35,7 +36,7 @@ export function ProChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [compte] = useStockage<ComptePro>(CLES.comptePro);
-  const [dossier] = useStockage<Dossier>(CLES.dossier);
+  const [dossier] = useDossierPro();
   const [sombre] = useStockage<boolean>(CLES.sombrePro);
 
   const publique = PUBLIQUES.includes(pathname);
