@@ -1,8 +1,30 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { espaceDe } from "@/lib/sous-domaines";
 
-/** Rafraîchit la session Supabase à chaque requête (cookies auth). */
+/** Routage sous-domaines + session Supabase. */
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const hote = request.headers.get("host") ?? "";
+  const espace = espaceDe(hote);
+
+  // Vitrine (domaine nu) : seules la page d'accueil et les assets publics sont servis.
+  if (espace === "vitrine" && pathname !== "/" && !pathname.startsWith("/_next") && !pathname.startsWith("/api") && !pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|webmanifest|js)$/)) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // Espace Pro sur pro.* : la racine du sous-domaine = /pro, les sous-chemins = /pro/*.
+  if (espace === "pro") {
+    const cible = pathname === "/" ? "/pro" : pathname.startsWith("/pro") ? pathname : `/pro${pathname}`;
+    return NextResponse.rewrite(new URL(cible, request.url));
+  }
+
+  // Espace Admin sur admin.* : idem vers /admin.
+  if (espace === "admin") {
+    const cible = pathname === "/" ? "/admin" : pathname.startsWith("/admin") ? pathname : `/admin${pathname}`;
+    return NextResponse.rewrite(new URL(cible, request.url));
+  }
+
   let reponse = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
