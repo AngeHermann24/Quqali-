@@ -20,6 +20,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#1E3A8A" };
 
+// Le layout dépend de l'hôte (headers()) : pas de shell statique possible.
+export const instant = false;
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   // Domaine nu → vitrine plein écran (sans header/nav/cadre applicatif).
   const vitrine = espaceDe((await headers()).get("host")) === "vitrine";
