@@ -12,6 +12,7 @@ export function espaceDe(hote: string | null): EspaceHote {
   if (h.startsWith("pro.")) return "pro";
   if (h.startsWith("admin.")) return "admin";
   if (h.startsWith("app.")) return "app";
+  if (h === "vitrine.localhost") return "vitrine"; // aperçu local : http://vitrine.localhost:3000
   // Domaine nu de production → vitrine (app accessible uniquement via app.*).
   return "vitrine";
 }

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
@@ -6,6 +7,7 @@ import { NavBas } from "@/components/app/nav-bas";
 import { CadreApp } from "@/components/app/cadre-app";
 import { FournisseurCatalogue } from "@/components/catalogue";
 import { FournisseurSession } from "@/components/session";
+import { espaceDe } from "@/lib/sous-domaines";
 import { SITE } from "@/lib/site";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -18,7 +20,18 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#1E3A8A" };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Domaine nu → vitrine plein écran (sans header/nav/cadre applicatif).
+  const vitrine = espaceDe((await headers()).get("host")) === "vitrine";
+  if (vitrine)
+    return (
+      <html lang="fr" data-scroll-behavior="smooth" className={`${inter.variable} ${poppins.variable} h-full antialiased`}>
+        <body className="flex min-h-full flex-col font-sans" suppressHydrationWarning>
+          {children}
+        </body>
+      </html>
+    );
+
   return (
     <html lang="fr" data-scroll-behavior="smooth" className={`${inter.variable} ${poppins.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans" suppressHydrationWarning>
