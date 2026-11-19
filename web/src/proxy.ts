@@ -8,6 +8,11 @@ export async function proxy(request: NextRequest) {
   const hote = request.headers.get("host") ?? "";
   const espace = espaceDe(hote);
 
+  // Fichiers PWA/TWA : jamais réécrits vers /pro ou /admin (requis à la racine du domaine).
+  if (pathname === "/manifest.webmanifest" || pathname === "/sw.js" || pathname.startsWith("/.well-known/")) {
+    return NextResponse.next({ request });
+  }
+
   // Vitrine (domaine nu) : seules la page d'accueil et les assets publics sont servis.
   if (espace === "vitrine" && pathname !== "/" && !pathname.startsWith("/_next") && !pathname.startsWith("/api") && !pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|webmanifest|js)$/)) {
     return NextResponse.redirect(new URL("/", request.url));
